@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revision Command Centre</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg-page: #ECEAE5;
+  --bg-card: #F5F4EF;
+  --text-primary: #1C1C1A;
+  --text-secondary: #7E7E78;
+  --text-tertiary: #AEADA7;
+  --border: rgba(0,0,0,0.09);
+  --border-emphasis: rgba(0,0,0,0.16);
+  --red-fill: #F5E9E9;
+  --red-text: #8B2626;
+  --red-dot: #C94545;
+  --amber-fill: #F5EFE3;
+  --amber-text: #6E4610;
+  --amber-dot: #D98A18;
+  --green-fill: #E8F2E4;
+  --green-text: #285E1C;
+  --green-dot: #479A2C;
+  --accent: #3A3A36;
+  --spacing: 8px;
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page: #302F2B;
+    --bg-card: #3C3B37;
+    --text-primary: #ECEAE5;
+    --text-secondary: #908F89;
+    --text-tertiary: #6A6962;
+    --border: rgba(255,255,255,0.09);
+    --border-emphasis: rgba(255,255,255,0.16);
+    --red-fill: #3D2C2C;
+    --red-text: #E07070;
+    --red-dot: #C94545;
+    --amber-fill: #3A3020;
+    --amber-text: #DDA055;
+    --amber-dot: #D98A18;
+    --green-fill: #263322;
+    --green-text: #6DC451;
+    --green-dot: #479A2C;
+    --accent: #C8C7C0;
+    --card-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+body {
+  padding-bottom: 80px;
+  overscroll-behavior-y: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOTTOM TAB BAR
+   ═══════════════════════════════════════════════════════════════ */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  z-index: 100;
+  /* keep it centred on wide screens */
+  max-width: 100%;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--text-tertiary);
+  border-top: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.tab-item.active {
+  color: var(--text-primary);
+  border-top-color: var(--text-primary);
+}
+
+.tab-item:hover { color: var(--text-secondary); }
+
+.tab-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.tab-label {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: calc(var(--spacing) * 4) calc(var(--spacing) * 3);
+}
+
+/* Home page inner container needs less top padding (hero handles the top) */
+#page-home > .container { padding-top: calc(var(--spacing) * 3); }
+
+/* Clamp max width of tab bar items on very wide screens */
+@media (min-width: 700px) {
+  .tab-bar { justify-content: center; }
+  .tab-item { max-width: 140px; }
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: calc(var(--spacing) * 3);
+  margin-bottom: calc(var(--spacing) * 2);
+  box-shadow: var(--card-shadow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════ */
+h1 { font-weight: 300; font-size: 28px; line-height: 1.2; margin-bottom: calc(var(--spacing) * 2); }
+h2 { font-weight: 500; font-size: 16px; margin-bottom: calc(var(--spacing) * 2); }
+h3 { font-weight: 500; font-size: 14px; margin-bottom: var(--spacing); }
+
+.label {
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BADGES & PILLS
+   ═══════════════════════════════════════════════════════════════ */
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 2px 8px;
+  border-radius: 3px;
+  line-height: 1.6;
+}
+
+.badge-red { background: var(--red-fill); color: var(--red-text); }
+.badge-amber { background: var(--amber-fill); color: var(--amber-text); }
+.badge-green { background: var(--green-fill); color: var(--green-text); }
+
+.text-red { color: var(--red-text); }
+.text-secondary { color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 2);
+  border: 1px solid var(--border-emphasis);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn:hover { background: var(--bg-page); }
+.btn-sm { font-size: 11px; padding: 2px 10px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM ELEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+textarea, input[type="text"], input[type="number"], select {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 300;
+  padding: calc(var(--spacing) * 1);
+  border: 1px solid var(--border-emphasis);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  width: 100%;
+}
+
+textarea { resize: vertical; min-height: 80px; }
+textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+.form-row {
+  display: flex;
+  gap: calc(var(--spacing) * 2);
+  align-items: flex-end;
+  margin-bottom: calc(var(--spacing) * 2);
+  flex-wrap: wrap;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HOME PAGE — HERO
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hero strip — full-width, no top bar above it */
+.hero {
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--spacing) * 5) calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-eyebrow {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+
+.hero-date {
+  font-size: 42px;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-bottom: calc(var(--spacing) * 4);
+}
+
+.hero-rule {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: calc(var(--spacing) * 4);
+}
+
+.hero-meta {
+  display: flex;
+  gap: calc(var(--spacing) * 6);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.hero-meta-block {}
+
+.hero-meta-label {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.hero-meta-value {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.hero-meta-value.urgent { color: var(--red-text); }
+
+.hero-meta-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Today's subjects pills */
+.subject-pills {
+  display: flex;
+  gap: var(--spacing);
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 400;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg-card);
+}
+
+/* Subject stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: calc(var(--spacing) * 1.5);
+  margin-bottom: calc(var(--spacing) * 3);
+}
+
+@media (max-width: 640px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-date { font-size: 28px; }
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: calc(var(--spacing) * 2);
+  box-shadow: var(--card-shadow);
+}
+
+.stat-card-label {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+
+.stat-card-name {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: calc(var(--spacing) * 1.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-mini-bar {
+  height: 3px;
+  border-radius: 2px;
+  display: flex;
+  overflow: hidden;
+  background: var(--border);
+  margin-bottom: var(--spacing);
+}
+
+.stat-mini-bar-seg { height: 100%; }
+
+.stat-tl-counts {
+  display: flex;
+  gap: calc(var(--spacing) * 1.5);
+}
+
+.stat-tl-count {
+  font-size: 11px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+}
+
+.stat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Home tools section */
+.home-tools { }
+
+.itinerary-area {
+  width: 100%;
+  min-height: 300px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: calc(var(--spacing) * 2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRAFFIC LIGHTS
+   ═══════════════════════════════════════════════════════════════ */
+.tl-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: calc(var(--spacing) * 2);
+  overflow-x: auto;
+}
+
+.tl-tab {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tl-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+
+.tl-summary {
+  display: flex;
+  gap: calc(var(--spacing) * 2);
+  margin-bottom: calc(var(--spacing) * 2);
+  align-items: center;
+}
+
+.tl-summary-item {
+  font-size: 13px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tl-summary-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tl-bulk {
+  display: flex;
+  gap: var(--spacing);
+  margin-bottom: calc(var(--spacing) * 3);
+}
+
+.tl-section-header {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  padding: calc(var(--spacing) * 1.5) 0 calc(var(--spacing) * 1);
+  border-bottom: 1px solid var(--border);
+  margin-top: calc(var(--spacing) * 2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing);
+}
+
+.tl-section-name { flex: 1; }
+
+.tl-section-bulk {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.tl-section-bulk-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.tl-section-bulk-dot:hover {
+  opacity: 1;
+  border-color: var(--text-primary);
+}
+
+.tl-topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tl-topic-name {
+  font-size: 13px;
+  font-weight: 300;
+  flex: 1;
+  min-width: 0;
+  padding-right: var(--spacing);
+}
+
+.tl-dots {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tl-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.tl-dot.dim { opacity: 0.25; }
+.tl-dot.selected { border-color: var(--text-primary); }
+.tl-dot-r { background: var(--red-dot); }
+.tl-dot-a { background: var(--amber-dot); }
+.tl-dot-g { background: var(--green-dot); }
+
+.tl-saved {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: var(--spacing);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAST PAPERS
+   ═══════════════════════════════════════════════════════════════ */
+.paper-section {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+
+.paper-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: calc(var(--spacing) * 1.5) 0;
+}
+
+.paper-section-header h3 {
+  margin-bottom: 0;
+}
+
+.paper-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: calc(var(--spacing) * 2);
+}
+
+.paper-list-table th {
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-emphasis);
+}
+
+.paper-list-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 300;
+}
+
+.paper-delete {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.paper-delete:hover { color: var(--red-text); }
+
+.avg-bar-container {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: var(--spacing) 0;
+  overflow: hidden;
+}
+
+.avg-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.paper-rec {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: calc(var(--spacing) * 2);
+}
+
+.paper-pct-live {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: var(--spacing);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COUNTDOWN
+   ═══════════════════════════════════════════════════════════════ */
+.exam-row {
+  display: flex;
+  align-items: center;
+  padding: calc(var(--spacing) * 1.5) 0;
+  border-bottom: 1px solid var(--border);
+  gap: calc(var(--spacing) * 2);
+  flex-wrap: wrap;
+}
+
+.exam-subject-badge {
+  font-size: 10px;
+  font-weight: 400;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: center;
+}
+
+.exam-info {
+  flex: 1;
+  min-width: 180px;
+}
+
+.exam-name { font-size: 13px; font-weight: 400; }
+.exam-date { font-size: 12px; color: var(--text-secondary); }
+
+.exam-days-badge {
+  font-size: 12px;
+  font-weight: 400;
+  padding: 2px 10px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.readiness-bar-container {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  margin-top: calc(var(--spacing) * 2);
+}
+
+.readiness-segment {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.readiness-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+/* Subject colours for badges */
+.subj-maths { background: #F0F0FB; color: #3A3A7A; }
+.subj-fm { background: #F0F0FB; color: #5A3A7A; }
+.subj-phys { background: #EDF5F7; color: #1A5A6A; }
+.subj-cs { background: #F5F0EA; color: #5A4A2A; }
+
+@media (prefers-color-scheme: dark) {
+  .subj-maths { background: #1E1E2A; color: #9A9ADA; }
+  .subj-fm { background: #241E2A; color: #BA9ADA; }
+  .subj-phys { background: #1A2228; color: #6ABACC; }
+  .subj-cs { background: #24201A; color: #BAAA7A; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY
+   ═══════════════════════════════════════════════════════════════ */
+.mt1 { margin-top: var(--spacing); }
+.mt2 { margin-top: calc(var(--spacing) * 2); }
+.mt3 { margin-top: calc(var(--spacing) * 3); }
+.mb1 { margin-bottom: var(--spacing); }
+.mb2 { margin-bottom: calc(var(--spacing) * 2); }
+.mb3 { margin-bottom: calc(var(--spacing) * 3); }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.gap1 { gap: var(--spacing); }
+.text-sm { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     BOTTOM TAB BAR
+     ═══════════════════════════════════════════════════════════════ -->
+<nav class="tab-bar" id="tabBar">
+  <a class="tab-item" href="#home" data-route="home">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+      <path d="M7 18V11h6v7"/>
+    </svg>
+    <span class="tab-label">Home</span>
+  </a>
+  <a class="tab-item" href="#traffic" data-route="traffic">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <rect x="6" y="1" width="8" height="18" rx="2"/>
+      <circle cx="10" cy="5.5" r="1.6" fill="currentColor" stroke="none"/>
+      <circle cx="10" cy="10" r="1.6" fill="currentColor" stroke="none"/>
+      <circle cx="10" cy="14.5" r="1.6" fill="currentColor" stroke="none"/>
+    </svg>
+    <span class="tab-label">Topics</span>
+  </a>
+  <a class="tab-item" href="#papers" data-route="papers">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 2h7l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+      <path d="M12 2v4h4"/>
+      <line x1="7" y1="9" x2="13" y2="9"/>
+      <line x1="7" y1="12" x2="13" y2="12"/>
+      <line x1="7" y1="15" x2="10" y2="15"/>
+    </svg>
+    <span class="tab-label">Papers</span>
+  </a>
+  <a class="tab-item" href="#countdown" data-route="countdown">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <circle cx="10" cy="11" r="7"/>
+      <path d="M10 7.5V11l2.5 2.5"/>
+      <path d="M7.5 1.5h5"/>
+      <path d="M10 1.5V3"/>
+    </svg>
+    <span class="tab-label">Countdown</span>
+  </a>
+</nav>
+
+<div id="pageRoot">
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGE 1: HOME — hero lives outside the container
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-home">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-eyebrow">Revision Command Centre</div>
+      <div class="hero-date" id="homeDate"></div>
+      <div class="hero-rule"></div>
+      <div class="hero-meta">
+        <div class="hero-meta-block">
+          <div class="hero-meta-label">Next exam</div>
+          <div class="hero-meta-value" id="homeCountdownName">—</div>
+          <div class="hero-meta-sub" id="homeCountdownDays"></div>
+        </div>
+        <div class="hero-meta-block">
+          <div class="hero-meta-label">Today's subjects</div>
+          <div class="subject-pills" id="homePills" style="margin-top:4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subject stats grid -->
+    <div class="container" style="padding-top: calc(var(--spacing)*3); padding-bottom: 0;">
+      <div class="stats-grid" id="homeStatsGrid"></div>
+
+      <!-- Tools -->
+      <div class="home-tools">
+        <div class="card">
+          <h3>Today's Itinerary Prompt</h3>
+          <p class="text-sm text-secondary mb2">Generate a revision plan to paste into Claude — includes traffic light status, past paper results, and exam timing.</p>
+          <button class="btn mb2" id="btnGenItinerary">Generate today's itinerary</button>
+          <textarea class="itinerary-area" id="itineraryOutput" readonly placeholder="Click the button above to generate your itinerary prompt..."></textarea>
+          <button class="btn btn-sm mt1" id="btnCopyItinerary" style="display:none;">Copy to clipboard</button>
+        </div>
+
+        <div class="card mt2">
+          <h3>Session Feedback</h3>
+          <p class="text-sm text-secondary mb2">Notes from today's session → Claude will identify weak spots, recommend traffic light updates, and set priorities.</p>
+          <textarea id="feedbackInput" placeholder="How did today's revision go? Which topics felt hard? What did you cover?"></textarea>
+          <div class="mt1">
+            <button class="btn" id="btnFeedback">Copy feedback prompt</button>
+          </div>
+          <textarea class="itinerary-area mt2" id="feedbackOutput" readonly style="display:none;"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGE 2: TRAFFIC LIGHTS
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-traffic">
+  <div class="container">
+    <h2>Traffic Lights</h2>
+    <div class="tl-tabs" id="tlTabs"></div>
+    <div class="tl-summary" id="tlSummary"></div>
+    <div class="tl-bulk" id="tlBulk">
+      <button class="btn btn-sm" data-bulk="r">Mark all Red</button>
+      <button class="btn btn-sm" data-bulk="a">Mark all Amber</button>
+      <button class="btn btn-sm" data-bulk="g">Mark all Green</button>
+    </div>
+    <div id="tlTopics"></div>
+    <div class="tl-saved" id="tlSaved"></div>
+  </div><!-- /container -->
+  </div><!-- /page-traffic -->
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGE 3: PAST PAPERS
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-papers">
+  <div class="container">
+    <h2>Past Papers</h2>
+    <div id="paperSections"></div>
+
+    <div class="card mt3">
+      <h3>Log a Paper</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Subject</label>
+          <select id="ppSubject">
+            <option>Mathematics</option>
+            <option>Further Maths</option>
+            <option>Physics</option>
+            <option>Computer Science</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:0.5;">
+          <label>Year</label>
+          <input type="number" id="ppYear" value="2024" min="2015" max="2030">
+        </div>
+        <div class="form-group" style="flex:0.7;">
+          <label>Paper</label>
+          <select id="ppPaper"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:0.4;">
+          <label>Score</label>
+          <input type="number" id="ppScore" min="0" placeholder="67">
+        </div>
+        <div class="form-group" style="flex:0.4;">
+          <label>Total</label>
+          <input type="number" id="ppTotal" min="1" placeholder="100">
+        </div>
+        <div class="form-group" style="flex:0.2; align-items: center; justify-content: flex-end;">
+          <span class="paper-pct-live" id="ppPctLive">—%</span>
+        </div>
+      </div>
+      <div class="form-group mb2">
+        <label>Wrong topics / questions</label>
+        <textarea id="ppWrong" rows="2" placeholder="e.g. Q4 chain rule, Q7 integration by parts"></textarea>
+      </div>
+      <button class="btn" id="btnLogPaper">Log paper</button>
+    </div>
+  </div><!-- /container -->
+  </div><!-- /page-papers -->
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGE 4: COUNTDOWN
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-countdown">
+  <div class="container">
+    <h2>Exam Countdown</h2>
+    <div class="readiness-label">Overall readiness</div>
+    <div class="readiness-bar-container" id="readinessBar"></div>
+    <div class="tl-summary mt1 mb3" id="readinessLegend"></div>
+    <div id="examList"></div>
+  </div><!-- /container -->
+  </div><!-- /page-countdown -->
+</div><!-- /pageRoot -->
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   DATA: TOPICS
+   ═══════════════════════════════════════════════════════════════════ */
+const TOPICS = {
+  "Mathematics": {
+    "A: Proof": [
+      "Proof by deduction",
+      "Proof by exhaustion",
+      "Disproof by counter-example",
+      "Proof by contradiction (incl. irrationality of root 2, infinity of primes)"
+    ],
+    "B: Algebra & Functions": [
+      "Laws of indices for rational exponents",
+      "Surds & rationalising the denominator",
+      "Quadratic functions: discriminant, completing the square, solving",
+      "Simultaneous equations (linear & quadratic)",
+      "Linear & quadratic inequalities",
+      "Polynomials: expanding, factorising, algebraic division, factor theorem",
+      "Simplifying rational expressions & algebraic division by linear",
+      "Graphs of functions: polynomials, modulus, y=a/x, y=a/x^2",
+      "Composite & inverse functions",
+      "Graph transformations: af(x), f(x)+a, f(x+a), f(ax) & combinations",
+      "Partial fractions (up to squared linear denominators)",
+      "Functions in modelling"
+    ],
+    "C: Coordinate Geometry": [
+      "Equation of a straight line: forms, parallel/perpendicular",
+      "Circle geometry: equation, completing the square, angle in semicircle, tangent",
+      "Parametric equations: curves, conversion to Cartesian",
+      "Parametric equations in modelling"
+    ],
+    "D: Sequences & Series": [
+      "Binomial expansion (positive integer n): nCr notation",
+      "Binomial expansion (any rational n), validity condition",
+      "Sequences: nth-term formula, recurrence relations, types",
+      "Sigma notation",
+      "Arithmetic sequences & series: nth term, sum to n terms",
+      "Geometric sequences & series: nth term, sum to n, sum to infinity",
+      "Sequences & series in modelling"
+    ],
+    "E: Trigonometry": [
+      "Sine, cosine, tangent; sine rule, cosine rule, area formula",
+      "Radians: arc length, sector area",
+      "Small angle approximations",
+      "Graphs of sin, cos, tan: symmetry, periodicity, exact values",
+      "Sec, cosec, cot & arcsin, arccos, arctan",
+      "Identities: sin^2+cos^2=1, sec^2=1+tan^2, cosec^2=1+cot^2",
+      "Compound angle formulae",
+      "Double angle formulae; harmonic form",
+      "Solving trig equations in given intervals",
+      "Proofs involving trig identities"
+    ],
+    "F: Exponentials & Logarithms": [
+      "Exponential functions a^x and e^x and their graphs",
+      "Gradient of e^(kx) is ke^(kx); exponential models",
+      "Definition of log_a(x); ln x as inverse of e^x",
+      "Laws of logarithms",
+      "Solving equations of the form a^x=b",
+      "Log graphs to estimate parameters in y=ax^n and y=kb^x",
+      "Exponential growth & decay in modelling"
+    ],
+    "G: Differentiation": [
+      "Derivative as gradient/rate of change; first principles",
+      "Second derivative; convex/concave; points of inflection",
+      "Differentiating x^n, e^(kx), a^(kx), sin kx, cos kx, tan kx, ln x",
+      "Chain rule",
+      "Product rule",
+      "Quotient rule",
+      "Implicit differentiation",
+      "Parametric differentiation",
+      "Stationary points; increasing/decreasing functions",
+      "Tangents & normals",
+      "Connected rates of change"
+    ],
+    "H: Integration": [
+      "Integration as reverse differentiation; standard integrals",
+      "Definite integrals; area under/between curves",
+      "Integration by substitution",
+      "Integration by parts",
+      "Integration using partial fractions",
+      "Trapezium rule",
+      "Differential equations: forming & solving by separation of variables",
+      "Integration in modelling"
+    ],
+    "I: Numerical Methods": [
+      "Change of sign methods; when they fail",
+      "Newton-Raphson method",
+      "Fixed-point iteration; convergence & failure conditions"
+    ],
+    "J: Vectors": [
+      "Vectors in 2D and 3D: components, magnitude, unit vectors",
+      "Addition, subtraction, scalar multiplication",
+      "Scalar (dot) product; angle between vectors",
+      "Vector equation of a line; intersection; skew lines",
+      "Position vectors; geometric problems"
+    ],
+    "K-L: Statistics — Sampling & Data": [
+      "Sampling methods: simple random, systematic, stratified, cluster, opportunity",
+      "Large data set awareness",
+      "Measures of location: mean, median, mode",
+      "Measures of spread: range, IQR, variance, standard deviation",
+      "Data presentation: histograms, cumulative frequency, box plots, scatter diagrams",
+      "Outliers; cleaning data"
+    ],
+    "M: Probability": [
+      "Venn diagrams & set notation",
+      "Addition law P(AuB)",
+      "Conditional probability P(A|B)",
+      "Multiplication law; independent events",
+      "Probability trees & two-way tables"
+    ],
+    "N: Statistical Distributions": [
+      "Discrete probability distributions; E(X), Var(X)",
+      "Binomial distribution B(n,p): conditions, mean, variance",
+      "Normal distribution N(mu,sigma^2): standard normal Z, tables",
+      "Normal approximation to Binomial (continuity correction)",
+      "Selecting appropriate distribution"
+    ],
+    "O: Statistical Hypothesis Testing": [
+      "Null & alternative hypotheses; one/two-tailed tests",
+      "Critical regions; significance levels; p-values",
+      "Hypothesis test for binomial probability",
+      "Testing correlation coefficient",
+      "Interpreting results in context"
+    ],
+    "P-S: Mechanics": [
+      "Quantities, units, scalars & vectors in mechanics",
+      "Kinematics: displacement-time & velocity-time graphs",
+      "SUVAT equations",
+      "Projectile motion",
+      "Variable acceleration using calculus",
+      "Newton's 1st, 2nd & 3rd laws; F=ma",
+      "Weight, normal reaction, friction, tension",
+      "Connected particles: pulleys, lifts",
+      "Moments: principle of moments; equilibrium",
+      "Work, energy & power; conservation of energy",
+      "Momentum & impulse; conservation; elastic/inelastic collisions",
+      "Modelling assumptions in mechanics"
+    ]
+  },
+  "Further Maths": {
+    "A: Proof by Induction": [
+      "Sums of series by induction",
+      "Divisibility by induction",
+      "Matrix powers by induction",
+      "Proof by induction: structure & presentation"
+    ],
+    "B: Complex Numbers": [
+      "Solving quadratics, cubics, quartics with real coefficients",
+      "Arithmetic in x+iy form; conjugate; conjugate pairs",
+      "Argand diagrams",
+      "Cartesian to modulus-argument form",
+      "Multiplying & dividing in modulus-argument form",
+      "Loci: |z-a|=r, arg(z-a)=theta, |z-a|=|z-b|",
+      "De Moivre's theorem; multiple angle formulae",
+      "Euler's form z=re^(i*theta)",
+      "nth roots; regular n-gon in Argand diagram",
+      "Roots of unity; geometric applications"
+    ],
+    "C: Matrices": [
+      "Matrix arithmetic; zero & identity matrices",
+      "2D linear transformations; 3D reflections & rotations",
+      "Invariant points & invariant lines",
+      "Determinants (2x2 & 3x3); scale factors; orientation",
+      "Singular & non-singular; inverse matrices",
+      "Solving 3 simultaneous equations via inverse matrix",
+      "Geometric interpretation: unique/no/infinite solutions",
+      "Row & column operations to factorise determinants",
+      "Eigenvalues & eigenvectors; characteristic equation",
+      "Diagonalisation M=UDU^(-1); computing M^n"
+    ],
+    "D: Further Algebra & Functions": [
+      "Roots of polynomials up to quartic: sums, products",
+      "Polynomial whose roots are linear transform of another",
+      "Sums of integers, squares & cubes; summing series",
+      "Method of differences; partial fractions",
+      "Maclaurin series: definition, finding, general term",
+      "Standard Maclaurin: e^x, ln(1+x), sinx, cosx, (1+x)^n; validity",
+      "Limits using Maclaurin or l'Hopital's rule",
+      "Polynomial & rational function inequalities",
+      "Modulus inequalities",
+      "Graphs of |f(x)| and 1/f(x)",
+      "Graphs of (ax+b)/(cx+d): asymptotes, inequalities",
+      "Graphs of (ax^2+bx+c)/(dx^2+ex+f): oblique asymptotes",
+      "Stationary points of rational functions using quadratic theory",
+      "Conics: y^2=4ax, ellipse, hyperbola, xy=c^2; asymptotes",
+      "Transformations: translations, stretches, reflections, rotations, enlargements"
+    ],
+    "E: Further Calculus": [
+      "Improper integrals",
+      "Volumes of revolution about x- and y-axis",
+      "Mean value of a function",
+      "Integration with partial fractions (quadratic factors)",
+      "Differentiating inverse trig",
+      "Integrating 1/sqrt(a^2-x^2) and 1/(a^2+x^2); trig substitutions",
+      "Arc length & surface of revolution",
+      "Reduction formulae",
+      "Limits: x^ke^(-x) to 0 and x^kln(x) to 0"
+    ],
+    "F: Further Vectors": [
+      "Vector & Cartesian forms of lines in 3D",
+      "Vector & Cartesian forms of planes",
+      "Scalar product: angles between lines and planes",
+      "Perpendicularity using scalar product",
+      "Vector product; area of triangle",
+      "Intersection: two lines; line & plane",
+      "Distances: point to line, point to plane, between skew lines"
+    ],
+    "G: Polar Coordinates": [
+      "Polar coordinates; converting polar to Cartesian",
+      "Sketching polar curves",
+      "Area enclosed by a polar curve"
+    ],
+    "H: Hyperbolic Functions": [
+      "Definitions of sinh, cosh, tanh, sech, cosech, coth; graphs",
+      "Differentiating & integrating hyperbolic functions",
+      "Inverse hyperbolic functions; domains & ranges",
+      "Logarithmic forms of inverse hyperbolics",
+      "Integrating 1/sqrt(x^2+a^2) and 1/sqrt(x^2-a^2); hyperbolic substitutions",
+      "Hyperbolic identities: cosh^2(x)-sinh^2(x)=1; double angle forms",
+      "Proofs using hyperbolic identities"
+    ],
+    "I: Differential Equations": [
+      "Integrating factor for dy/dx + P(x)y = Q(x)",
+      "General & particular solutions",
+      "DEs in kinematics & modelling",
+      "2nd order homogeneous: auxiliary equation",
+      "2nd order inhomogeneous: particular integrals",
+      "Discriminant of auxiliary equation: overdamped/critical/underdamped",
+      "Simple harmonic motion; solution & interpretation",
+      "Damped oscillations; light/critical/heavy damping",
+      "Coupled 1st order systems",
+      "SHM via Hooke's Law",
+      "Damping force proportional to velocity"
+    ],
+    "J: Numerical Methods": [
+      "Mid-ordinate rule",
+      "Simpson's rule",
+      "Euler's step-by-step method for 1st order DEs",
+      "Improved Euler method"
+    ],
+    "Statistics 3S — Discrete RVs & Expectation": [
+      "DRVs: tables & functions; evaluating probabilities",
+      "Mean, variance, SD, mode, median of DRVs",
+      "E(X), E(X^2), Var(X)=E(X^2)-[E(X)]^2",
+      "E(aX+b) and Var(aX+b)"
+    ],
+    "Statistics 3S — Further Distributions": [
+      "Geometric distribution: formula, mean, variance",
+      "Negative binomial distribution",
+      "Poisson distribution: formula, mean=variance=lambda",
+      "Combining Poisson distributions",
+      "Continuous random variables: pdf, cdf; E(X), Var(X), median, mode",
+      "Uniform (rectangular) distribution"
+    ],
+    "Statistics 3S — Hypothesis Testing & Inference": [
+      "Type I & II errors; P(Type I), P(Type II)",
+      "Chi-squared goodness-of-fit test",
+      "Chi-squared contingency tables; Yates' correction",
+      "Central Limit Theorem; distribution of sample mean",
+      "Confidence intervals for population mean",
+      "One-sample & two-sample t-tests",
+      "Bivariate normal; testing correlation"
+    ],
+    "Discrete 3D — Algorithms & Graph Theory": [
+      "Sorting: bubble sort, quicksort, bin-packing",
+      "Graph theory: vertices, edges, degree, Eulerian, Hamiltonian",
+      "Kruskal's & Prim's algorithms (minimum spanning trees)",
+      "Dijkstra's algorithm (shortest paths)",
+      "Route inspection (Chinese Postman)",
+      "Travelling salesman: upper/lower bounds",
+      "Planarity; complete & bipartite graphs"
+    ],
+    "Discrete 3D — Linear Programming & Networks": [
+      "LP: formulating constraints & objective function",
+      "Graphical LP: feasible region, objective line, vertices",
+      "Simplex algorithm (maximisation)",
+      "Critical path analysis: activity networks, early/late times, float",
+      "Resource histograms & levelling",
+      "Game theory: zero-sum, pay-off matrix, mixed strategies",
+      "Recurrence relations: solving by iteration & auxiliary equations"
+    ]
+  },
+  "Physics": {
+    "1: Measurements & Errors": [
+      "SI base units & prefixes",
+      "Random vs systematic errors; accuracy vs precision",
+      "Absolute, fractional & percentage uncertainties",
+      "Combining uncertainties",
+      "Uncertainty from graphs",
+      "Significant figures & appropriate precision"
+    ],
+    "2: Particles & Radiation": [
+      "Atomic structure: proton, neutron, electron — charge, mass, specific charge",
+      "Nuclide notation; isotopes",
+      "Stable & unstable nuclei; strong nuclear force",
+      "Alpha, beta-, beta+ decay equations; neutrino/antineutrino",
+      "Antiparticles; particle-antiparticle comparison",
+      "Photon model E=hf; Planck constant",
+      "Photoelectric effect: threshold frequency, work function, stopping potential",
+      "Einstein's equation: hf = phi + 0.5mv^2_max",
+      "Wave-particle duality; de Broglie wavelength",
+      "Electron diffraction as evidence",
+      "Hadrons: baryons & mesons; lepton classification",
+      "Conservation laws: charge, baryon number, lepton number, strangeness",
+      "Quarks: up, down, strange; charges; hadron quark composition",
+      "Four fundamental forces & exchange particles",
+      "Feynman diagrams",
+      "Pair production & annihilation"
+    ],
+    "3: Waves": [
+      "Progressive waves: displacement, amplitude, wavelength, frequency, period, speed",
+      "Wave equation v=flambda",
+      "Transverse vs longitudinal; polarisation",
+      "Superposition principle",
+      "Interference: path difference, coherence, constructive/destructive",
+      "Young's double-slit: fringe spacing w=lambdaD/d",
+      "Single-slit diffraction pattern",
+      "Diffraction grating: dsin(theta)=nlambda",
+      "Stationary waves: nodes, antinodes, harmonics",
+      "Refraction: Snell's law; refractive index",
+      "Critical angle & TIR",
+      "Optical fibres: step-index; modal & material dispersion"
+    ],
+    "4: Mechanics & Materials": [
+      "Scalars & vectors; resolving; triangle of forces",
+      "Moments; couple; principle of moments",
+      "Newton's 1st law; equilibrium",
+      "SUVAT equations",
+      "Projectile motion",
+      "Newton's 2nd law F=ma; terminal velocity",
+      "Newton's 3rd law",
+      "Work done W=Fd*cos(theta)",
+      "KE=0.5mv^2; GPE=mgh; conservation of energy",
+      "Power P=Fv; efficiency",
+      "Momentum p=mv; impulse; conservation of momentum",
+      "Elastic & inelastic collisions",
+      "Density rho=m/V",
+      "Hooke's law F=kx; spring constant; elastic limit",
+      "Stress, strain, Young modulus",
+      "Stress-strain graphs: elastic region, yield point, fracture",
+      "Elastic & plastic deformation; energy stored"
+    ],
+    "5: Electricity": [
+      "Current I=DeltaQ/Deltat",
+      "pd V=W/Q; emf",
+      "Resistance R=V/I; factors affecting resistance",
+      "Resistivity rho=RA/L; temperature dependence",
+      "I-V characteristics: resistor, filament lamp, diode",
+      "Kirchhoff's 1st law",
+      "Kirchhoff's 2nd law",
+      "Series & parallel circuits; combining resistors",
+      "EMF & internal resistance; terminal pd",
+      "Potential divider; use as sensor circuit"
+    ],
+    "6: Further Mechanics & Thermal Physics": [
+      "Angular speed omega=v/r; centripetal acceleration",
+      "Centripetal force; vertical & horizontal circles",
+      "SHM definition: a proportional to -x",
+      "SHM equations: x=Acos(omegat), v=+/-omegasqrt(A^2-x^2)",
+      "SHM graphs: displacement, velocity, acceleration",
+      "Energy in SHM: KE+PE=constant",
+      "Resonance & damping: light, heavy, critical",
+      "Specific heat capacity Q=mcDeltaT",
+      "Specific latent heat Q=mL",
+      "Ideal gas law pV=nRT and pV=NkT",
+      "Boyle's law & Charles's law",
+      "Molecular kinetic theory: mean KE=(3/2)kT",
+      "Brownian motion"
+    ],
+    "7: Fields & Their Consequences": [
+      "Newton's law of gravitation",
+      "Gravitational field strength g=GM/r^2",
+      "Gravitational potential Vg=-GM/r",
+      "Orbital motion: v^2=GM/r; period & orbital radius",
+      "Escape velocity; satellites; geostationary orbits",
+      "Coulomb's law",
+      "Electric field strength E=F/Q; uniform field E=V/d",
+      "Electric potential Ve=kQ/r",
+      "Field lines & equipotentials; comparison of g & E fields",
+      "Capacitance C=Q/V; parallel plate; dielectrics",
+      "Capacitors in series & parallel; energy W=0.5CV^2",
+      "Charging & discharging: Q=Q0e^(-t/RC); time constant",
+      "Force on wire F=BIlsin(theta)",
+      "Force on charge F=Bqv*sin(theta)",
+      "Magnetic flux; flux linkage",
+      "Faraday's law",
+      "Lenz's law",
+      "Transformers: turns ratio; power transmission",
+      "Hall effect"
+    ],
+    "8: Nuclear Physics": [
+      "Rutherford scattering & nuclear model",
+      "Nuclear radius R=R0A^(1/3)",
+      "Alpha, beta, gamma: nature, penetration, ionisation",
+      "Nuclear decay equations",
+      "Activity A=lambdaN; decay constant",
+      "Half-life T_half=ln2/lambda; N=N0e^(-lambdat)",
+      "Radiation safety: ALARA",
+      "E=mc^2; unified atomic mass unit",
+      "Binding energy; mass defect; binding energy per nucleon curve",
+      "Fission: induced fission; chain reaction; critical mass",
+      "Fusion: conditions; energy release"
+    ],
+    "9: Astrophysics (Option A)": [
+      "Astronomical distances: AU, light-year, parsec",
+      "Refracting & reflecting telescopes; ray diagrams; resolving power",
+      "Radio, IR, UV, X-ray, gamma telescopes; atmospheric absorption",
+      "Luminosity, temperature, colour, spectral class of stars",
+      "Stefan's law L=4pir^2sigmaT^4",
+      "Wien's displacement law lambda_maxT=constant",
+      "Hertzsprung-Russell diagram",
+      "Stellar evolution: birth to death; supernovae, neutron stars, black holes",
+      "Standard candles: Cepheid variables; supernovae Type Ia",
+      "Hubble's law v=H0d",
+      "Doppler effect: Delta_lambda/lambda=v/c",
+      "Cosmological redshift; expanding universe",
+      "Big Bang evidence: CMB, redshift, H & He abundance",
+      "Age of universe t=1/H0",
+      "Dark matter & dark energy (qualitative)"
+    ]
+  },
+  "Computer Science": {
+    "3.1: Fundamentals of Programming": [
+      "Data types: integer, real, Boolean, character, string",
+      "Variables vs constants; advantages of named constants",
+      "Arithmetic, relational & Boolean operations",
+      "String handling: length, position, substring, concatenation, case",
+      "Random number generation",
+      "Procedures & functions; local vs global; parameter passing (value/reference)",
+      "Recursion: base case, recursive case, call stack",
+      "File handling: open, read, write, close",
+      "Exception handling: try/except/finally",
+      "OOP: objects, classes, instantiation",
+      "OOP: encapsulation, inheritance, polymorphism",
+      "OOP: constructors, methods, attributes; overriding; abstract classes"
+    ],
+    "3.2: Fundamentals of Data Structures": [
+      "Static vs dynamic data structures",
+      "1D & 2D arrays",
+      "Records (structs)",
+      "Linked lists: singly & doubly linked; insert, delete, traverse",
+      "Stacks: push, pop, peek; applications",
+      "Queues: enqueue, dequeue; circular queue; applications",
+      "Trees: binary trees; pre/in/post-order traversal",
+      "Binary search trees: insert, search, delete",
+      "Graphs: directed/undirected; weighted; adjacency matrix & list",
+      "Hash tables: hashing, collision resolution",
+      "Dictionaries (associative arrays)",
+      "Vectors: inner product, scalar multiplication, convex combinations"
+    ],
+    "3.3: Fundamentals of Algorithms": [
+      "Linear search: algorithm & O(n)",
+      "Binary search: algorithm, O(log n)",
+      "Bubble sort: algorithm, optimisation, O(n^2)",
+      "Merge sort: divide-and-conquer, O(n log n)",
+      "Quicksort: pivot selection, O(n log n) average",
+      "Dijkstra's shortest path algorithm",
+      "A* search algorithm",
+      "Big-O notation: O(1), O(log n), O(n), O(n log n), O(n^2)",
+      "Space complexity",
+      "Tractable vs intractable problems",
+      "Heuristic approaches"
+    ],
+    "3.4: Theory of Computation": [
+      "Abstraction: representational, generalisation, functional",
+      "Decomposition & divide-and-conquer",
+      "FSMs: states, transitions, start/accept states; DFA vs NFA",
+      "FSMs with output (Mealy machines)",
+      "Regular expressions; language of FSMs",
+      "Turing machine: tape, head, transition function",
+      "Halting problem & undecidability",
+      "Regular, context-free & unrestricted languages",
+      "Context-free grammars; BNF & EBNF",
+      "Syntax diagrams",
+      "P vs NP (qualitative)"
+    ],
+    "3.5: Data Representation": [
+      "Binary, denary, hexadecimal; conversion between all three",
+      "Binary addition; overflow",
+      "Two's complement: negative integers; subtraction",
+      "Normalised floating point: sign, exponent, mantissa",
+      "Floating point: underflow, overflow, absolute/relative error",
+      "ASCII 7-bit & 8-bit extended",
+      "Unicode: need for; UTF-8 & UTF-32",
+      "Bitmap images: pixel, resolution, colour depth, file size",
+      "Vector graphics: objects, properties, advantages",
+      "Digital sound: sampling rate, resolution, file size",
+      "Lossless compression: run-length encoding, Huffman coding",
+      "Lossy compression",
+      "Encryption: Caesar cipher, Vernam cipher"
+    ],
+    "3.6: Fundamentals of Computer Systems": [
+      "Hardware vs software; types of software",
+      "OS roles: memory, process, file management, security",
+      "Utility software: defragmenter, backup, antivirus",
+      "Machine code, assembly, high-level languages; generations",
+      "Compilers vs interpreters vs assemblers",
+      "Stages of compilation: lexical, syntax, code generation, optimisation",
+      "Programming paradigms: imperative, OOP, declarative, functional",
+      "Virtual machines: purpose, JVM; advantages"
+    ],
+    "3.7: Computer Organisation & Architecture": [
+      "CPU components: ALU, CU, registers, buses",
+      "Von Neumann architecture; stored program concept",
+      "Harvard architecture; comparison with Von Neumann",
+      "Registers: PC, MAR, MDR, CIR, ACC, SP",
+      "Fetch-Decode-Execute cycle: detailed steps",
+      "CPU performance: clock speed, cores, cache",
+      "Assembly language: mnemonics, operands",
+      "Addressing modes: immediate, direct, indirect, indexed",
+      "Pipelining: stages, hazards, branch prediction"
+    ],
+    "3.8: Consequences of Uses of Computing": [
+      "Ethical issues: bias in algorithms, AI ethics, surveillance",
+      "Computer Misuse Act 1990",
+      "Data Protection Act 2018 / GDPR",
+      "Copyright Designs & Patents Act 1988",
+      "Regulation of Investigatory Powers Act 2000",
+      "Digital divide",
+      "Environmental impact: energy use, e-waste",
+      "Moral responsibilities of programmers",
+      "Open source vs proprietary software",
+      "Crowdsourcing & collaborative development"
+    ],
+    "3.9: Communication & Networking": [
+      "LAN vs WAN; internet; intranet",
+      "Network topologies: bus, star, ring, mesh",
+      "Transmission media: copper, fibre optic, wireless",
+      "Protocols: purpose; why layering",
+      "OSI model (7 layers)",
+      "TCP/IP model (4 layers); comparison with OSI",
+      "IP addresses: IPv4 & IPv6; subnet masks",
+      "Packet switching: routers, routing tables",
+      "MAC addresses vs IP addresses",
+      "TCP vs UDP: use cases",
+      "HTTP, HTTPS, FTP, SSH, SMTP, IMAP, POP3",
+      "DNS: resolution process; hierarchy",
+      "Wi-Fi: CSMA/CA, RTS/CTS, SSID, WPA2, MAC filtering",
+      "Firewalls: packet filtering, stateful, proxy",
+      "Threats: viruses, worms, trojans, ransomware, phishing, SQL injection, DDoS",
+      "Symmetric encryption (AES); key exchange problem",
+      "Asymmetric encryption: public/private key pair",
+      "Digital certificates & certificate authorities",
+      "TLS/SSL handshake",
+      "Steganography"
+    ],
+    "3.10: Databases": [
+      "Flat files vs relational databases",
+      "Entities, attributes, primary keys, foreign keys",
+      "ER diagrams: 1:1, 1:M, M:M",
+      "Normalisation: 1NF, 2NF, 3NF",
+      "SQL: SELECT, FROM, WHERE, ORDER BY, GROUP BY, HAVING",
+      "SQL: INSERT, UPDATE, DELETE",
+      "SQL: INNER JOIN, LEFT JOIN; aggregate functions",
+      "ACID properties; transactions",
+      "Referential integrity",
+      "NoSQL: document & key-value stores"
+    ],
+    "3.11: Big Data": [
+      "Big data: volume, velocity, variety, veracity",
+      "Distributed processing: Hadoop, MapReduce",
+      "Machine learning: supervised vs unsupervised",
+      "Neural networks: nodes, weights, activation functions (qualitative)",
+      "Issues: data quality, bias, privacy"
+    ],
+    "3.12: Functional Programming": [
+      "Functional paradigm: pure functions, immutability, no side effects",
+      "First-class & higher-order functions",
+      "Map, filter, reduce/fold",
+      "Lambda functions",
+      "Partial application & currying",
+      "Function composition",
+      "List comprehension",
+      "Advantages: testability, concurrency"
+    ]
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   DATA: EXAM SCHEDULE
+   ═══════════════════════════════════════════════════════════════════ */
+const EXAMS = [
+  { date: "2026-05-20", time: "13:45", subject: "Physics", name: "Physics Paper 1", code: "7408/1" },
+  { date: "2026-05-21", time: "13:45", subject: "Further Maths", name: "Further Maths Paper 1", code: "7367/1" },
+  { date: "2026-06-01", time: "09:15", subject: "Physics", name: "Physics Paper 2", code: "7408/2" },
+  { date: "2026-06-03", time: "13:45", subject: "Mathematics", name: "Mathematics Paper 1", code: "7357/1" },
+  { date: "2026-06-05", time: "13:45", subject: "Further Maths", name: "Further Maths Paper 2", code: "7367/2" },
+  { date: "2026-06-08", time: "09:15", subject: "Physics", name: "Physics Paper 3 Astrophysics", code: "7408/3/A" },
+  { date: "2026-06-10", time: "13:45", subject: "Computer Science", name: "Computer Science Paper 1 C#", code: "7517/1A" },
+  { date: "2026-06-11", time: "13:45", subject: "Mathematics", name: "Mathematics Paper 2", code: "7357/2" },
+  { date: "2026-06-12", time: "13:45", subject: "Further Maths", name: "Further Maths Paper 3S Statistics", code: "7367/3S" },
+  { date: "2026-06-12", time: "13:45", subject: "Further Maths", name: "Further Maths Paper 3D Discrete", code: "7367/3D" },
+  { date: "2026-06-17", time: "09:15", subject: "Computer Science", name: "Computer Science Paper 2", code: "7517/2" },
+  { date: "2026-06-18", time: "13:45", subject: "Mathematics", name: "Mathematics Paper 3", code: "7357/3" }
+];
+
+const TIMETABLE = {
+  1: ["Mathematics", "Computer Science"],
+  2: ["Further Maths", "Physics"],
+  3: ["Physics", "Mathematics"],
+  4: ["Computer Science", "Mathematics"],
+  5: ["Further Maths", "Physics"],
+  6: [],
+  0: ["Mathematics", "Further Maths", "Physics", "Computer Science"]
+};
+
+const PAPER_TARGETS = { "Mathematics": 3, "Further Maths": 3, "Physics": 2, "Computer Science": 2 };
+
+const PAPER_STRUCTURES = {
+  "Mathematics": { papers: ["Paper 1", "Paper 2", "Paper 3"], start: 2020 },
+  "Further Maths": { papers: ["Paper 1", "Paper 2", "Paper 3S", "Paper 3D"], start: 2020 },
+  "Physics": { papers: ["Paper 1", "Paper 2", "Paper 3A"], start: 2018 },
+  "Computer Science": { papers: ["Paper 1", "Paper 2"], start: 2020 }
+};
+
+const SUBJECTS = ["Mathematics", "Further Maths", "Physics", "Computer Science"];
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATE MANAGEMENT
+   ═══════════════════════════════════════════════════════════════════ */
+const STORAGE_KEY = "rcc_v1";
+
+function loadState() {
+  let raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    // Migration from older keys
+    raw = localStorage.getItem("revision_state_v2") || localStorage.getItem("revision_state_v3");
+  }
+  let state;
+  try { state = raw ? JSON.parse(raw) : null; } catch (e) { state = null; }
+  if (!state) {
+    state = { tl: {}, papers: {}, weekStart: getWeekStart(), weekCount: {} };
+  }
+  if (!state.tl) state.tl = {};
+  if (!state.papers) state.papers = {};
+  if (!state.weekCount) state.weekCount = {};
+  for (const s of SUBJECTS) {
+    if (!state.papers[s]) state.papers[s] = [];
+    if (state.weekCount[s] === undefined) state.weekCount[s] = 0;
+  }
+  // Reset weekly count if new week
+  const ws = getWeekStart();
+  if (state.weekStart !== ws) {
+    state.weekStart = ws;
+    for (const s of SUBJECTS) state.weekCount[s] = 0;
+  }
+  return state;
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function getWeekStart() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const mon = new Date(d.setDate(diff));
+  return mon.toISOString().slice(0, 10);
+}
+
+let state = loadState();
+saveState(); // Persist migration immediately
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROUTING
+   ═══════════════════════════════════════════════════════════════════ */
+function route() {
+  const hash = location.hash.slice(1) || "home";
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-item").forEach(a => a.classList.remove("active"));
+  const page = document.getElementById("page-" + hash);
+  if (page) {
+    page.classList.add("active");
+    // Always scroll to top on route change
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  const tab = document.querySelector(`.tab-item[data-route="${hash}"]`);
+  if (tab) tab.classList.add("active");
+  // Render the active page
+  if (hash === "home") renderHome();
+  else if (hash === "traffic") renderTraffic();
+  else if (hash === "papers") renderPapers();
+  else if (hash === "countdown") renderCountdown();
+}
+
+window.addEventListener("hashchange", route);
+
+/* ═══════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════ */
+function formatDate(d) {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function daysUntil(dateStr) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr + "T00:00:00");
+  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+}
+
+function tlKey(subject, topic) {
+  return subject + "|" + topic;
+}
+
+function getTL(subject, topic) {
+  return state.tl[tlKey(subject, topic)] || "r";
+}
+
+function setTL(subject, topic, value) {
+  state.tl[tlKey(subject, topic)] = value;
+  saveState();
+}
+
+function countTL(subject) {
+  let r = 0, a = 0, g = 0;
+  for (const sec in TOPICS[subject]) {
+    for (const t of TOPICS[subject][sec]) {
+      const v = getTL(subject, t);
+      if (v === "r") r++;
+      else if (v === "a") a++;
+      else g++;
+    }
+  }
+  return { r, a, g };
+}
+
+function allTopicsFlat(subject) {
+  const out = [];
+  for (const sec in TOPICS[subject]) {
+    for (const t of TOPICS[subject][sec]) out.push(t);
+  }
+  return out;
+}
+
+function getSubjectClass(subject) {
+  if (subject === "Mathematics") return "subj-maths";
+  if (subject === "Further Maths") return "subj-fm";
+  if (subject === "Physics") return "subj-phys";
+  return "subj-cs";
+}
+
+function nextExam(subject) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  for (const e of EXAMS) {
+    if (e.subject === subject && new Date(e.date + "T00:00:00") >= now) return e;
+  }
+  return null;
+}
+
+function nextExamOverall() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  for (const e of EXAMS) {
+    if (new Date(e.date + "T00:00:00") >= now) return e;
+  }
+  return null;
+}
+
+function escHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE 1: HOME
+   ═══════════════════════════════════════════════════════════════════ */
+function renderHome() {
+  const now = new Date();
+  document.getElementById("homeDate").textContent = formatDate(now);
+
+  // Next exam
+  const ne = nextExamOverall();
+  const nameEl = document.getElementById("homeCountdownName");
+  const daysEl = document.getElementById("homeCountdownDays");
+  if (ne) {
+    const days = daysUntil(ne.date);
+    nameEl.textContent = ne.name;
+    nameEl.className = "hero-meta-value" + (days <= 14 ? " urgent" : "");
+    daysEl.textContent = days + " day" + (days !== 1 ? "s" : "") + " to go";
+  } else {
+    nameEl.textContent = "No upcoming exams";
+    daysEl.textContent = "";
+  }
+
+  // Today's pills
+  const todaySubjects = TIMETABLE[now.getDay()] || [];
+  const pillsEl = document.getElementById("homePills");
+  pillsEl.innerHTML = todaySubjects.length
+    ? todaySubjects.map(s => `<span class="pill">${escHtml(s)}</span>`).join("")
+    : '<span style="font-size:13px;font-weight:300;color:var(--text-tertiary)">Rest day</span>';
+
+  // Subject stats grid
+  const grid = document.getElementById("homeStatsGrid");
+  const shortNames = { "Mathematics": "Maths", "Further Maths": "Further Maths", "Physics": "Physics", "Computer Science": "CS" };
+  let gridHtml = "";
+  for (const subj of SUBJECTS) {
+    const c = countTL(subj);
+    const total = c.r + c.a + c.g || 1;
+    const pR = (c.r / total * 100).toFixed(1);
+    const pA = (c.a / total * 100).toFixed(1);
+    const pG = (c.g / total * 100).toFixed(1);
+    const ne2 = nextExam(subj);
+    const days2 = ne2 ? daysUntil(ne2.date) : null;
+    const papers = (state.papers[subj] || []);
+    const avgPct = papers.length ? Math.round(papers.reduce((s,p)=>s+p.pct,0)/papers.length) : null;
+    const isToday = todaySubjects.includes(subj);
+
+    gridHtml += `<div class="stat-card" style="${isToday ? "border-color:var(--border-emphasis);" : ""}">
+      <div class="stat-card-label">${isToday ? "&#9656; Today" : "&nbsp;"}</div>
+      <div class="stat-card-name">${escHtml(shortNames[subj] || subj)}</div>
+      <div class="stat-mini-bar">
+        <div class="stat-mini-bar-seg" style="width:${pR}%;background:var(--red-dot)"></div>
+        <div class="stat-mini-bar-seg" style="width:${pA}%;background:var(--amber-dot)"></div>
+        <div class="stat-mini-bar-seg" style="width:${pG}%;background:var(--green-dot)"></div>
+      </div>
+      <div class="stat-tl-counts">
+        <span class="stat-tl-count"><span class="stat-dot" style="background:var(--red-dot)"></span>${c.r}</span>
+        <span class="stat-tl-count"><span class="stat-dot" style="background:var(--amber-dot)"></span>${c.a}</span>
+        <span class="stat-tl-count"><span class="stat-dot" style="background:var(--green-dot)"></span>${c.g}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-tertiary);margin-top:var(--spacing);">
+        ${days2 !== null ? days2 + "d to exam" : "No exam"}${avgPct !== null ? " &middot; " + avgPct + "% avg" : ""}
+      </div>
+    </div>`;
+  }
+  grid.innerHTML = gridHtml;
+}
+
+document.getElementById("btnGenItinerary").addEventListener("click", () => {
+  const now = new Date();
+  const todaySubjects = TIMETABLE[now.getDay()] || [];
+  let prompt = `=== REVISION ITINERARY REQUEST ===\n`;
+  prompt += `Date: ${formatDate(now)}\n`;
+  prompt += `Day: ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()]}\n`;
+  prompt += `Subjects scheduled today: ${todaySubjects.length ? todaySubjects.join(", ") : "REST DAY"}\n\n`;
+
+  for (const subj of todaySubjects) {
+    const counts = countTL(subj);
+    const allT = allTopicsFlat(subj);
+    const reds = allT.filter(t => getTL(subj, t) === "r");
+    const ambers = allT.filter(t => getTL(subj, t) === "a");
+
+    prompt += `--- ${subj} ---\n`;
+    prompt += `Traffic lights: Red ${counts.r} | Amber ${counts.a} | Green ${counts.g}\n`;
+    prompt += `Red topics:\n${reds.length ? reds.map(t => "  - " + t).join("\n") : "  (none)"}\n`;
+    prompt += `Amber topics:\n${ambers.length ? ambers.map(t => "  - " + t).join("\n") : "  (none)"}\n`;
+    prompt += `Green topic count: ${counts.g}\n\n`;
+
+    // Past paper results (last 3)
+    const papers = (state.papers[subj] || []).slice(-3);
+    if (papers.length) {
+      prompt += `Last ${papers.length} paper(s):\n`;
+      for (const p of papers) {
+        prompt += `  ${p.year} ${p.paper}: ${p.pct}%${p.wrong ? " — Wrong: " + p.wrong : ""}\n`;
+      }
+    } else {
+      prompt += `No past papers logged yet.\n`;
+    }
+
+    // Weekly progress
+    const wc = state.weekCount[subj] || 0;
+    const wt = PAPER_TARGETS[subj] || 0;
+    prompt += `Weekly paper progress: ${wc}/${wt}\n`;
+
+    // Next recommended paper
+    const rec = getNextRecommended(subj);
+    prompt += `Next recommended paper: ${rec || "All completed"}\n`;
+
+    // Time until nearest exam
+    const ne2 = nextExam(subj);
+    if (ne2) {
+      prompt += `Time until nearest exam (${ne2.name}): ${daysUntil(ne2.date)} days\n`;
+    }
+    prompt += "\n";
+  }
+
+  prompt += `=== INSTRUCTIONS FOR CLAUDE ===\n`;
+  prompt += `Produce a concise revision itinerary for today. For each subject:\n`;
+  prompt += `1. Topics to focus on (prioritise red first, then amber)\n`;
+  prompt += `2. Two exam-style practice questions per subject with brief model answers\n`;
+  prompt += `3. Next past paper to sit\n`;
+  prompt += `4. Any patterns spotted from wrong-topic notes across papers\n`;
+  prompt += `No micromanagement. Format clearly per subject.\n`;
+
+  const ta = document.getElementById("itineraryOutput");
+  ta.value = prompt;
+  document.getElementById("btnCopyItinerary").style.display = "inline-block";
+});
+
+document.getElementById("btnCopyItinerary").addEventListener("click", () => {
+  const ta = document.getElementById("itineraryOutput");
+  ta.select();
+  navigator.clipboard.writeText(ta.value).catch(() => document.execCommand("copy"));
+});
+
+document.getElementById("btnFeedback").addEventListener("click", () => {
+  const feedback = document.getElementById("feedbackInput").value.trim();
+  if (!feedback) return;
+
+  let prompt = `=== SESSION FEEDBACK ANALYSIS REQUEST ===\n\n`;
+  prompt += `Student's session feedback:\n"${feedback}"\n\n`;
+  prompt += `=== INSTRUCTIONS FOR CLAUDE ===\n`;
+  prompt += `Based on this feedback:\n`;
+  prompt += `1. Identify weak topics mentioned or implied\n`;
+  prompt += `2. Recommend exact traffic light updates (topic name → new colour with reason)\n`;
+  prompt += `3. Give 3 challenging A*-grade questions for the hardest topic mentioned, with brief answers\n`;
+  prompt += `4. Adjust revision priorities for the next 3 days\n`;
+  prompt += `Be specific. Reference actual A-level specification topics.\n`;
+
+  const out = document.getElementById("feedbackOutput");
+  out.value = prompt;
+  out.style.display = "block";
+  out.select();
+  navigator.clipboard.writeText(out.value).catch(() => document.execCommand("copy"));
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE 2: TRAFFIC LIGHTS
+   ═══════════════════════════════════════════════════════════════════ */
+let tlActiveSubject = "Mathematics";
+
+function renderTraffic() {
+  renderTLTabs();
+  renderTLContent();
+}
+
+function renderTLTabs() {
+  const el = document.getElementById("tlTabs");
+  el.innerHTML = SUBJECTS.map(s =>
+    `<button class="tl-tab${s === tlActiveSubject ? " active" : ""}" data-subj="${escHtml(s)}">${escHtml(s)}</button>`
+  ).join("");
+  el.querySelectorAll(".tl-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tlActiveSubject = btn.dataset.subj;
+      renderTraffic();
+    });
+  });
+}
+
+function renderTLContent() {
+  const subj = tlActiveSubject;
+  const counts = countTL(subj);
+
+  // Summary
+  document.getElementById("tlSummary").innerHTML = `
+    <span class="tl-summary-item"><span class="tl-summary-dot" style="background:var(--red-dot)"></span> Red ${counts.r}</span>
+    <span class="tl-summary-item"><span class="tl-summary-dot" style="background:var(--amber-dot)"></span> Amber ${counts.a}</span>
+    <span class="tl-summary-item"><span class="tl-summary-dot" style="background:var(--green-dot)"></span> Green ${counts.g}</span>
+  `;
+
+  // Topics
+  const container = document.getElementById("tlTopics");
+  let html = "";
+  let secIdx = 0;
+  for (const section in TOPICS[subj]) {
+    html += `<div class="tl-section-header">
+      <span class="tl-section-name">${escHtml(section)}</span>
+      <span class="tl-section-bulk">
+        <span class="tl-section-bulk-dot tl-dot-r" title="Mark section Red" data-sec="${secIdx}" data-val="r"></span>
+        <span class="tl-section-bulk-dot tl-dot-a" title="Mark section Amber" data-sec="${secIdx}" data-val="a"></span>
+        <span class="tl-section-bulk-dot tl-dot-g" title="Mark section Green" data-sec="${secIdx}" data-val="g"></span>
+      </span>
+    </div>`;
+    for (const topic of TOPICS[subj][section]) {
+      const val = getTL(subj, topic);
+      html += `<div class="tl-topic-row">
+        <span class="tl-topic-name">${escHtml(topic)}</span>
+        <span class="tl-dots">
+          <span class="tl-dot tl-dot-r${val === "r" ? " selected" : " dim"}" data-topic="${escHtml(topic)}" data-val="r"></span>
+          <span class="tl-dot tl-dot-a${val === "a" ? " selected" : " dim"}" data-topic="${escHtml(topic)}" data-val="a"></span>
+          <span class="tl-dot tl-dot-g${val === "g" ? " selected" : " dim"}" data-topic="${escHtml(topic)}" data-val="g"></span>
+        </span>
+      </div>`;
+    }
+    secIdx++;
+  }
+  container.innerHTML = html;
+
+  // Section bulk dot handlers
+  const sectionKeys = Object.keys(TOPICS[subj]);
+  container.querySelectorAll(".tl-section-bulk-dot").forEach(dot => {
+    dot.addEventListener("click", () => {
+      const secKey = sectionKeys[parseInt(dot.dataset.sec)];
+      const val = dot.dataset.val;
+      for (const t of TOPICS[subj][secKey]) {
+        state.tl[tlKey(subj, t)] = val;
+      }
+      saveState();
+      renderTLContent();
+      showSaved();
+    });
+  });
+
+  container.querySelectorAll(".tl-dot").forEach(dot => {
+    dot.addEventListener("click", () => {
+      const topic = dot.dataset.topic;
+      const val = dot.dataset.val;
+      setTL(subj, topic, val);
+      renderTLContent();
+      showSaved();
+    });
+  });
+}
+
+// Bulk buttons
+document.getElementById("tlBulk").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-bulk]");
+  if (!btn) return;
+  const val = btn.dataset.bulk;
+  for (const sec in TOPICS[tlActiveSubject]) {
+    for (const t of TOPICS[tlActiveSubject][sec]) {
+      state.tl[tlKey(tlActiveSubject, t)] = val;
+    }
+  }
+  saveState();
+  renderTLContent();
+  showSaved();
+});
+
+function showSaved() {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0, 8);
+  document.getElementById("tlSaved").textContent = "Last saved " + ts;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE 3: PAST PAPERS
+   ═══════════════════════════════════════════════════════════════════ */
+function renderPapers() {
+  const container = document.getElementById("paperSections");
+  let html = "";
+
+  for (const subj of SUBJECTS) {
+    const papers = state.papers[subj] || [];
+    const avg = papers.length ? Math.round(papers.reduce((s, p) => s + p.pct, 0) / papers.length) : 0;
+    const avgColor = avg >= 70 ? "var(--green-dot)" : avg >= 50 ? "var(--amber-dot)" : "var(--red-dot)";
+    const rec = getNextRecommended(subj);
+    const wc = state.weekCount[subj] || 0;
+    const wt = PAPER_TARGETS[subj];
+
+    html += `<div class="card paper-section">
+      <h3>${escHtml(subj)}</h3>
+      <div class="text-sm text-secondary mb1">Weekly: ${wc}/${wt} papers | ${rec ? "Next: " + rec : "All years completed"}</div>`;
+
+    if (papers.length) {
+      html += `<div class="avg-bar-container"><div class="avg-bar" style="width:${avg}%;background:${avgColor}"></div></div>
+        <div class="text-sm text-secondary mb2">Average: ${avg}%</div>
+        <table class="paper-list-table">
+          <tr><th>Year</th><th>Paper</th><th>Score</th><th>%</th><th>Wrong topics</th><th></th></tr>`;
+      for (let i = 0; i < papers.length; i++) {
+        const p = papers[i];
+        const badgeCls = p.pct >= 70 ? "badge-green" : p.pct >= 50 ? "badge-amber" : "badge-red";
+        html += `<tr>
+          <td>${p.year}</td>
+          <td>${escHtml(p.paper)}</td>
+          <td>${p.score}/${p.total}</td>
+          <td><span class="badge ${badgeCls}">${p.pct}%</span></td>
+          <td class="text-sm">${escHtml(p.wrong || "")}</td>
+          <td><button class="paper-delete" data-subj="${escHtml(subj)}" data-idx="${i}">&times;</button></td>
+        </tr>`;
+      }
+      html += `</table>`;
+    } else {
+      html += `<div class="text-sm text-secondary">No papers logged yet.</div>`;
+    }
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+
+  container.querySelectorAll(".paper-delete").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!confirm("Delete this paper entry?")) return;
+      const subj = btn.dataset.subj;
+      const idx = parseInt(btn.dataset.idx);
+      state.papers[subj].splice(idx, 1);
+      saveState();
+      renderPapers();
+    });
+  });
+
+  // Update paper selector
+  updatePaperSelector();
+}
+
+function getNextRecommended(subj) {
+  const struct = PAPER_STRUCTURES[subj];
+  if (!struct) return null;
+  const logged = state.papers[subj] || [];
+  for (let y = struct.start; y <= 2025; y++) {
+    for (const p of struct.papers) {
+      const found = logged.some(l => l.year === y && l.paper === p);
+      if (!found) return `${y} ${p}`;
+    }
+  }
+  return null;
+}
+
+function updatePaperSelector() {
+  const subj = document.getElementById("ppSubject").value;
+  const struct = PAPER_STRUCTURES[subj];
+  const sel = document.getElementById("ppPaper");
+  sel.innerHTML = struct.papers.map(p => `<option>${p}</option>`).join("");
+}
+
+document.getElementById("ppSubject").addEventListener("change", updatePaperSelector);
+
+// Live % calc
+function updatePctLive() {
+  const score = parseInt(document.getElementById("ppScore").value) || 0;
+  const total = parseInt(document.getElementById("ppTotal").value) || 0;
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  document.getElementById("ppPctLive").textContent = total > 0 ? pct + "%" : "—%";
+}
+
+document.getElementById("ppScore").addEventListener("input", updatePctLive);
+document.getElementById("ppTotal").addEventListener("input", updatePctLive);
+
+document.getElementById("btnLogPaper").addEventListener("click", () => {
+  const subj = document.getElementById("ppSubject").value;
+  const year = parseInt(document.getElementById("ppYear").value);
+  const paper = document.getElementById("ppPaper").value;
+  const score = parseInt(document.getElementById("ppScore").value);
+  const total = parseInt(document.getElementById("ppTotal").value);
+  const wrong = document.getElementById("ppWrong").value.trim();
+
+  if (!year || isNaN(score) || !total || total <= 0) {
+    alert("Please fill in year, score, and total.");
+    return;
+  }
+
+  const pct = Math.round((score / total) * 100);
+  state.papers[subj].push({ year, paper, score, total, pct, wrong });
+  state.weekCount[subj] = (state.weekCount[subj] || 0) + 1;
+  saveState();
+
+  // Clear form
+  document.getElementById("ppScore").value = "";
+  document.getElementById("ppTotal").value = "";
+  document.getElementById("ppWrong").value = "";
+  document.getElementById("ppPctLive").textContent = "—%";
+
+  renderPapers();
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE 4: COUNTDOWN
+   ═══════════════════════════════════════════════════════════════════ */
+function renderCountdown() {
+  // Readiness bar
+  let totalR = 0, totalA = 0, totalG = 0;
+  for (const subj of SUBJECTS) {
+    const c = countTL(subj);
+    totalR += c.r; totalA += c.a; totalG += c.g;
+  }
+  const total = totalR + totalA + totalG;
+  const pR = total ? (totalR / total * 100) : 0;
+  const pA = total ? (totalA / total * 100) : 0;
+  const pG = total ? (totalG / total * 100) : 0;
+
+  document.getElementById("readinessBar").innerHTML = `
+    <div class="readiness-segment" style="width:${pR}%;background:var(--red-dot)"></div>
+    <div class="readiness-segment" style="width:${pA}%;background:var(--amber-dot)"></div>
+    <div class="readiness-segment" style="width:${pG}%;background:var(--green-dot)"></div>
+  `;
+
+  document.getElementById("readinessLegend").innerHTML = `
+    <span class="tl-summary-item"><span class="tl-summary-dot" style="background:var(--red-dot)"></span> ${totalR} red</span>
+    <span class="tl-summary-item"><span class="tl-summary-dot" style="background:var(--amber-dot)"></span> ${totalA} amber</span>
+    <span class="tl-summary-item"><span class="tl-summary-dot" style="background:var(--green-dot)"></span> ${totalG} green</span>
+  `;
+
+  // Exam list
+  const sorted = [...EXAMS].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  const el = document.getElementById("examList");
+  let html = "";
+
+  for (const exam of sorted) {
+    const days = daysUntil(exam.date);
+    const badgeCls = days <= 14 ? "badge-red" : days <= 35 ? "badge-amber" : "badge-green";
+    const subjCls = getSubjectClass(exam.subject);
+    const examDate = new Date(exam.date + "T00:00:00");
+    const dateStr = examDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+    html += `<div class="exam-row">
+      <span class="exam-subject-badge ${subjCls}">${escHtml(exam.subject)}</span>
+      <div class="exam-info">
+        <div class="exam-name">${escHtml(exam.name)} <span class="text-secondary text-sm">(${escHtml(exam.code)})</span></div>
+        <div class="exam-date">${dateStr} at ${exam.time}</div>
+      </div>
+      <span class="exam-days-badge ${badgeCls}">${days} day${days !== 1 ? "s" : ""}</span>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════ */
+if (!location.hash) location.hash = "#home";
+route();
+updatePaperSelector();
+</script>
+</body>
+</html>
