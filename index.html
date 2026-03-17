@@ -9,47 +9,61 @@
    DESIGN SYSTEM
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg-page: #ECEAE5;
-  --bg-card: #F5F4EF;
-  --text-primary: #1C1C1A;
-  --text-secondary: #7E7E78;
-  --text-tertiary: #AEADA7;
-  --border: rgba(0,0,0,0.09);
-  --border-emphasis: rgba(0,0,0,0.16);
-  --red-fill: #F5E9E9;
-  --red-text: #8B2626;
+  /* Off-white backgrounds — cards pure white, page barely tinted */
+  --bg-page: #F5F4F0;
+  --bg-card: #FFFFFF;
+
+  /* Text — secondary lifted to ~6.5:1 contrast on white */
+  --text-primary: #181815;
+  --text-secondary: #48473F;
+  --text-tertiary: #9A9890;
+
+  /* Borders tuned to the warmer tone */
+  --border: rgba(72,71,63,0.10);
+  --border-emphasis: rgba(72,71,63,0.20);
+
+  /* Status colours — fills lightened to suit white cards */
+  --red-fill: #FDF0F0;
+  --red-text: #882222;
   --red-dot: #C94545;
-  --amber-fill: #F5EFE3;
-  --amber-text: #6E4610;
+  --amber-fill: #FDF6EC;
+  --amber-text: #6B4210;
   --amber-dot: #D98A18;
-  --green-fill: #E8F2E4;
-  --green-text: #285E1C;
+  --green-fill: #EDF7E8;
+  --green-text: #245418;
   --green-dot: #479A2C;
-  --accent: #3A3A36;
+
+  --accent: #48473F;
   --spacing: 8px;
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  --card-shadow: 0 1px 4px rgba(72,71,63,0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-page: #302F2B;
-    --bg-card: #3C3B37;
-    --text-primary: #ECEAE5;
-    --text-secondary: #908F89;
-    --text-tertiary: #6A6962;
-    --border: rgba(255,255,255,0.09);
-    --border-emphasis: rgba(255,255,255,0.16);
-    --red-fill: #3D2C2C;
-    --red-text: #E07070;
+    /* Warm dark — lighter than before, not near-black */
+    --bg-page: #28271F;
+    --bg-card: #32312A;
+
+    /* Secondary lifted to ~6:1 on card bg */
+    --text-primary: #F0EFE9;
+    --text-secondary: #B8B6AE;
+    --text-tertiary: #706E66;
+
+    --border: rgba(184,182,174,0.11);
+    --border-emphasis: rgba(184,182,174,0.20);
+
+    --red-fill: #3A2828;
+    --red-text: #E08080;
     --red-dot: #C94545;
-    --amber-fill: #3A3020;
-    --amber-text: #DDA055;
+    --amber-fill: #382E1C;
+    --amber-text: #E0A860;
     --amber-dot: #D98A18;
-    --green-fill: #263322;
-    --green-text: #6DC451;
+    --green-fill: #1E3020;
+    --green-text: #72CC55;
     --green-dot: #479A2C;
-    --accent: #C8C7C0;
-    --card-shadow: 0 1px 4px rgba(0,0,0,0.25);
+
+    --accent: #B8B6AE;
+    --card-shadow: 0 1px 4px rgba(0,0,0,0.28);
   }
 }
 
@@ -699,16 +713,16 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 /* Subject colours for badges */
-.subj-maths { background: #F0F0FB; color: #3A3A7A; }
-.subj-fm { background: #F0F0FB; color: #5A3A7A; }
-.subj-phys { background: #EDF5F7; color: #1A5A6A; }
-.subj-cs { background: #F5F0EA; color: #5A4A2A; }
+.subj-maths { background: #EDEDFA; color: #32327A; }
+.subj-fm    { background: #F0EAFA; color: #52327A; }
+.subj-phys  { background: #E8F4F8; color: #165468; }
+.subj-cs    { background: #F7F2E8; color: #554428; }
 
 @media (prefers-color-scheme: dark) {
-  .subj-maths { background: #1E1E2A; color: #9A9ADA; }
-  .subj-fm { background: #241E2A; color: #BA9ADA; }
-  .subj-phys { background: #1A2228; color: #6ABACC; }
-  .subj-cs { background: #24201A; color: #BAAA7A; }
+  .subj-maths { background: #23233A; color: #9A9AE0; }
+  .subj-fm    { background: #2A233A; color: #C09AE0; }
+  .subj-phys  { background: #1C2830; color: #6AC0D4; }
+  .subj-cs    { background: #2A2418; color: #C0AA7A; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
