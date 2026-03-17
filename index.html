@@ -169,9 +169,9 @@ body {
 /* ═══════════════════════════════════════════════════════════════
    TYPOGRAPHY
    ═══════════════════════════════════════════════════════════════ */
-h1 { font-weight: 300; font-size: 28px; line-height: 1.2; margin-bottom: calc(var(--spacing) * 2); }
-h2 { font-weight: 500; font-size: 16px; margin-bottom: calc(var(--spacing) * 2); }
-h3 { font-weight: 500; font-size: 14px; margin-bottom: var(--spacing); }
+h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 28px; line-height: 1.2; margin-bottom: calc(var(--spacing) * 2); }
+h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 18px; margin-bottom: calc(var(--spacing) * 2); }
+h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 15px; margin-bottom: var(--spacing); }
 
 .label {
   font-weight: 400;
@@ -906,6 +906,135 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 .diary-entry-delete:hover { color: var(--red-text); }
 
 /* ═══════════════════════════════════════════════════════════════
+   TO-DO LIST
+   ═══════════════════════════════════════════════════════════════ */
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+
+.todo-item.completed { opacity: 0.5; }
+
+.todo-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.todo-checkbox:hover {
+  border-color: var(--text-primary);
+  background: var(--bg-page);
+}
+
+.todo-checkbox.checked {
+  background: var(--green-dot);
+  border-color: var(--green-dot);
+  color: white;
+  font-size: 12px;
+}
+
+.todo-text {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-primary);
+  flex: 1;
+  word-break: break-word;
+}
+
+.todo-text.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.todo-delete {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.todo-delete:hover { color: var(--red-text); }
+
+.todo-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 20px 0;
+  text-align: center;
+}
+
+.todo-preview {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.todo-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.todo-preview-check {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--text-tertiary);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.todo-preview-check.checked {
+  background: var(--green-dot);
+  border-color: var(--green-dot);
+}
+
+/* Confetti animation */
+#confettiContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(100vh) rotateZ(360deg);
+    opacity: 0;
+  }
+}
+
+.confetti.animate {
+  animation: confetti-fall 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    UTILITY
    ═══════════════════════════════════════════════════════════════ */
 .mt1 { margin-top: var(--spacing); }
@@ -970,6 +1099,14 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     </svg>
     <span class="tab-label">Countdown</span>
   </a>
+  <a class="tab-item" href="#todos" data-route="todos">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <rect x="3" y="2" width="14" height="14" rx="1"/>
+      <path d="M6 7l2 2 4-5"/>
+      <path d="M6 13h8"/>
+    </svg>
+    <span class="tab-label">Tasks</span>
+  </a>
 </nav>
 
 <div id="pageRoot">
@@ -1002,6 +1139,12 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       <!-- Tools -->
       <div class="home-tools">
         <div class="card">
+          <h3>Tasks</h3>
+          <p class="text-sm text-secondary mb2"><a href="#todos" style="color:var(--accent);text-decoration:none;">View all</a></p>
+          <div id="homeTasksPreview"></div>
+        </div>
+
+        <div class="card mt2">
           <h3>Today's Itinerary Prompt</h3>
           <p class="text-sm text-secondary mb2">Generate a revision plan to paste into Claude — includes traffic light status, past paper results, and exam timing.</p>
           <button class="btn mb2" id="btnGenItinerary">Generate today's itinerary</button>
@@ -1159,7 +1302,35 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     </div>
   </div><!-- /container -->
   </div><!-- /page-diary -->
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAGE 6: TO-DO LIST
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-todos">
+    <div class="container">
+      <h2>Tasks</h2>
+
+      <div class="card">
+        <h3>Add a task</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Task</label>
+            <input type="text" id="todoInput" placeholder="e.g., Review quantum mechanics">
+          </div>
+          <button class="btn" id="btnAddTodo" style="align-self: flex-end;">Add</button>
+        </div>
+      </div>
+
+      <div class="card mt2">
+        <h3>To-do list</h3>
+        <div id="todoList"></div>
+      </div>
+    </div>
+  </div><!-- /page-todos -->
 </div><!-- /pageRoot -->
+
+<!-- Confetti container -->
+<div id="confettiContainer"></div>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════
@@ -1800,6 +1971,7 @@ function loadState() {
   if (!state.papers) state.papers = {};
   if (!state.weekCount) state.weekCount = {};
   if (!state.diary) state.diary = [];
+  if (!state.todos) state.todos = [];
   for (const s of SUBJECTS) {
     if (!state.papers[s]) state.papers[s] = [];
     if (state.weekCount[s] === undefined) state.weekCount[s] = 0;
@@ -1849,6 +2021,10 @@ function route() {
   else if (hash === "papers") renderPapers();
   else if (hash === "countdown") renderCountdown();
   else if (hash === "diary") renderDiary();
+  else if (hash === "todos") {
+    renderTodos();
+    setupTodoListeners();
+  }
 }
 
 window.addEventListener("hashchange", route);
@@ -2562,11 +2738,164 @@ function renderCountdown() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   PAGE 6: TO-DO LIST
+   ═══════════════════════════════════════════════════════════════════ */
+function renderTodos() {
+  const el = document.getElementById("todoList");
+  const todos = state.todos || [];
+
+  if (todos.length === 0) {
+    el.innerHTML = '<div class="todo-empty">No tasks yet. Add one above to get started!</div>';
+    return;
+  }
+
+  let html = "";
+  for (let i = 0; i < todos.length; i++) {
+    const todo = todos[i];
+    const checked = todo.completed ? " checked" : "";
+    const completedCls = todo.completed ? " completed" : "";
+    const checkMark = todo.completed ? "✓" : "";
+
+    html += `<div class="todo-item${completedCls}">
+      <div class="todo-checkbox${checked}" data-idx="${i}" title="Mark complete">${checkMark}</div>
+      <div class="todo-text${completedCls}">${escHtml(todo.text)}</div>
+      <button class="todo-delete" data-idx="${i}" title="Delete task">&times;</button>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+
+  // Checkbox handlers
+  el.querySelectorAll(".todo-checkbox").forEach(cb => {
+    cb.addEventListener("click", () => {
+      const idx = parseInt(cb.dataset.idx);
+      state.todos[idx].completed = !state.todos[idx].completed;
+
+      if (state.todos[idx].completed) {
+        triggerConfetti();
+        // Remove after animation
+        setTimeout(() => {
+          state.todos.splice(idx, 1);
+          saveState();
+          renderTodos();
+          renderHomePreview();
+        }, 600);
+      } else {
+        saveState();
+        renderTodos();
+        renderHomePreview();
+      }
+    });
+  });
+
+  // Delete handlers
+  el.querySelectorAll(".todo-delete").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (!confirm("Delete this task?")) return;
+      const idx = parseInt(btn.dataset.idx);
+      state.todos.splice(idx, 1);
+      saveState();
+      renderTodos();
+      renderHomePreview();
+    });
+  });
+}
+
+function triggerConfetti() {
+  const container = document.getElementById("confettiContainer");
+  const colors = [
+    "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
+    "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B88B", "#A9E5D8"
+  ];
+
+  for (let i = 0; i < 50; i++) {
+    const conf = document.createElement("div");
+    conf.className = "confetti";
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    conf.style.background = color;
+    conf.style.left = Math.random() * 100 + "%";
+    conf.style.top = "-10px";
+    conf.style.width = (Math.random() * 8 + 4) + "px";
+    conf.style.height = conf.style.width;
+    conf.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+
+    container.appendChild(conf);
+
+    // Trigger animation
+    setTimeout(() => {
+      conf.classList.add("animate");
+    }, 10);
+
+    // Clean up
+    setTimeout(() => conf.remove(), 2500);
+  }
+}
+
+function renderHomePreview() {
+  const preview = document.getElementById("homeTasksPreview");
+  if (!preview) return;
+
+  const todos = state.todos || [];
+  if (todos.length === 0) {
+    preview.innerHTML = '<div class="text-sm text-secondary">No tasks. All clear! 🎉</div>';
+    return;
+  }
+
+  let html = '<div class="todo-preview">';
+  for (let i = 0; i < Math.min(todos.length, 5); i++) {
+    const todo = todos[i];
+    const checked = todo.completed ? " checked" : "";
+    html += `<div class="todo-preview-item">
+      <div class="todo-preview-check${checked}"></div>
+      <span>${escHtml(todo.text)}</span>
+    </div>`;
+  }
+  html += '</div>';
+  if (todos.length > 5) {
+    html += `<div class="text-sm text-secondary" style="margin-top:var(--spacing);padding-top:var(--spacing);border-top:1px solid var(--border);">
+      +${todos.length - 5} more task${todos.length - 5 !== 1 ? "s" : ""}
+    </div>`;
+  }
+
+  preview.innerHTML = html;
+}
+
+function setupTodoListeners() {
+  const btnAdd = document.getElementById("btnAddTodo");
+  const input = document.getElementById("todoInput");
+
+  if (btnAdd) {
+    btnAdd.onclick = () => {
+      const text = input.value.trim();
+      if (!text) return;
+      state.todos.push({ text, completed: false, createdAt: Date.now() });
+      saveState();
+      input.value = "";
+      renderTodos();
+      renderHomePreview();
+    };
+  }
+
+  if (input) {
+    input.onkeypress = (e) => {
+      if (e.key === "Enter") {
+        btnAdd.click();
+      }
+    };
+  }
+}
+
+// Setup listeners after DOM is ready
+document.addEventListener("DOMContentLoaded", setupTodoListeners);
+setupTodoListeners(); // Also try immediately
+
+/* ═══════════════════════════════════════════════════════════════════
    INIT
    ═══════════════════════════════════════════════════════════════════ */
 if (!location.hash) location.hash = "#home";
 route();
 updatePaperSelector();
+renderHomePreview();
 </script>
 </body>
 </html>
