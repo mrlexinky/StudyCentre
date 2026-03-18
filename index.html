@@ -1144,6 +1144,10 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
         <div class="card mt2">
           <h3>Today's Itinerary Prompt</h3>
           <p class="text-sm text-secondary mb2">Generate a revision plan to paste into Claude — includes traffic light status, past paper results, and exam timing.</p>
+          <div class="form-group mb2">
+            <label>Anything specific to include today?</label>
+            <textarea id="itineraryNotes" rows="2" placeholder="e.g. focus on integration by parts, struggling with complex numbers, have 2 hours only, want to do a timed practice paper…"></textarea>
+          </div>
           <button class="btn mb2" id="btnGenItinerary">Generate today's itinerary</button>
           <textarea class="itinerary-area" id="itineraryOutput" readonly placeholder="Click the button above to generate your itinerary prompt..."></textarea>
           <button class="btn btn-sm mt1" id="btnCopyItinerary" style="display:none;">Copy to clipboard</button>
@@ -2175,10 +2179,13 @@ function renderHome() {
 document.getElementById("btnGenItinerary").addEventListener("click", () => {
   const now = new Date();
   const todaySubjects = TIMETABLE[now.getDay()] || [];
+  const customNotes = (document.getElementById("itineraryNotes").value || "").trim();
   let prompt = `=== REVISION ITINERARY REQUEST ===\n`;
   prompt += `Date: ${formatDate(now)}\n`;
   prompt += `Day: ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()]}\n`;
-  prompt += `Subjects scheduled today: ${todaySubjects.length ? todaySubjects.join(", ") : "REST DAY"}\n\n`;
+  prompt += `Subjects scheduled today: ${todaySubjects.length ? todaySubjects.join(", ") : "REST DAY"}\n`;
+  if (customNotes) prompt += `Student's notes for today: ${customNotes}\n`;
+  prompt += "\n";
 
   for (const subj of todaySubjects) {
     const counts = countTL(subj);
@@ -2226,6 +2233,7 @@ document.getElementById("btnGenItinerary").addEventListener("click", () => {
   prompt += `2. Two exam-style practice questions per subject with brief model answers\n`;
   prompt += `3. Next past paper to sit\n`;
   prompt += `4. Any patterns spotted from wrong-topic notes across papers\n`;
+  if (customNotes) prompt += `5. Take the student's notes into account: "${customNotes}" — adjust the plan accordingly.\n`;
   prompt += `No micromanagement. Format clearly per subject.\n`;
 
   const ta = document.getElementById("itineraryOutput");
