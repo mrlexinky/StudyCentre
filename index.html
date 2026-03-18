@@ -9,9 +9,9 @@
    DESIGN SYSTEM
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  /* Off-white backgrounds — cards pure white, page barely tinted */
-  --bg-page: #F5F4F0;
-  --bg-card: #FFFFFF;
+  /* Off-white backgrounds — page tinted, cards a lighter tint (no pure white) */
+  --bg-page: #F0EFEB;
+  --bg-card: #F7F6F3;
 
   /* Text — secondary lifted to ~6.5:1 contrast on white */
   --text-primary: #181815;
@@ -35,14 +35,14 @@
 
   --accent: #48473F;
   --spacing: 8px;
-  --card-shadow: 0 1px 4px rgba(72,71,63,0.08);
+  --card-shadow: 0 1px 2px rgba(72,71,63,0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Warm dark — lighter than before, not near-black */
-    --bg-page: #28271F;
-    --bg-card: #32312A;
+    /* Warm dark — card slightly lifted from page */
+    --bg-page: #26251E;
+    --bg-card: #302F28;
 
     /* Secondary lifted to ~6:1 on card bg */
     --text-primary: #F0EFE9;
@@ -92,7 +92,7 @@ body {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 60px;
-  background: var(--bg-card);
+  background: var(--bg-page);
   border-top: 1px solid var(--border);
   display: flex;
   align-items: stretch;
@@ -170,7 +170,7 @@ body {
    TYPOGRAPHY
    ═══════════════════════════════════════════════════════════════ */
 h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 28px; line-height: 1.2; margin-bottom: calc(var(--spacing) * 2); }
-h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 18px; margin-bottom: calc(var(--spacing) * 2); }
+h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -0.01em; margin-bottom: calc(var(--spacing) * 2.5); padding-bottom: calc(var(--spacing) * 1.5); border-bottom: 1px solid var(--border); }
 h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 15px; margin-bottom: var(--spacing); }
 
 .label {
@@ -217,7 +217,7 @@ h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 4
   transition: background 0.15s;
 }
 
-.btn:hover { background: var(--bg-page); }
+.btn:hover { background: var(--border); }
 .btn-sm { font-size: 11px; padding: 2px 10px; }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -228,9 +228,9 @@ textarea, input[type="text"], input[type="number"], select {
   font-size: 13px;
   font-weight: 300;
   padding: calc(var(--spacing) * 1);
-  border: 1px solid var(--border-emphasis);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: var(--bg-card);
+  background: var(--bg-page);
   color: var(--text-primary);
   width: 100%;
 }
@@ -429,7 +429,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   font-family: 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.5;
-  background: var(--bg-card);
+  background: var(--bg-page);
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -838,7 +838,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   transition: background 0.12s;
 }
 .resource-link:last-child { border-bottom: none; }
-.resource-link:hover { background: var(--bg-page); }
+.resource-link:hover { background: var(--border); }
 
 .resource-link-icon {
   width: 28px;
@@ -1050,29 +1050,29 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 .todo-item.completed { opacity: 0.5; }
 
 .todo-checkbox {
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid var(--text-secondary);
-  border-radius: 3px;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-emphasis);
+  border-radius: 50%;
   cursor: pointer;
-  background: var(--bg-card);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.15s;
   flex-shrink: 0;
 }
 
 .todo-checkbox:hover {
-  border-color: var(--text-primary);
-  background: var(--bg-page);
+  border-color: var(--green-dot);
+  background: var(--green-fill);
 }
 
 .todo-checkbox.checked {
   background: var(--green-dot);
   border-color: var(--green-dot);
   color: white;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .todo-text {
@@ -1223,6 +1223,10 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   background: var(--border-emphasis);
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 8px; color: var(--bg-card); font-weight: 700; line-height: 1;
+}
+
+.rev-tl-dots {
+  display: flex; gap: 4px; flex-shrink: 0; align-items: center;
 }
 
 .rev-topic-name { flex: 1; }
@@ -1518,13 +1522,11 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     <div class="container">
       <h2>Tasks</h2>
 
-      <!-- 1. Add a task form -->
-      <div class="card" style="padding: calc(var(--spacing)*2) calc(var(--spacing)*3);">
-        <div style="display:flex;gap:calc(var(--spacing)*1.5);align-items:center;">
-          <input type="text" id="todoInput" placeholder="Add a task…" style="flex:1;margin:0;">
-          <button class="btn" id="btnAddTodo" style="flex-shrink:0;white-space:nowrap;">Add</button>
-        </div>
+      <!-- 1. Add a task form — just a text field, press Enter to add -->
+      <div class="card" style="padding: calc(var(--spacing)*1.5) calc(var(--spacing)*2.5);">
+        <input type="text" id="todoInput" placeholder="Add a task… press Enter" style="margin:0;border:none;outline:none;background:transparent;width:100%;font-size:14px;">
       </div>
+      <button class="btn" id="btnAddTodo" style="display:none;">Add</button>
 
       <!-- 2. Manual to-do list -->
       <div class="card mt2">
@@ -2505,49 +2507,27 @@ function generateSchedule(dateStr) {
   const dow = d.getDay();
   const todaySubjects = TIMETABLE[dow] || [];
 
-  // Collect silently-redistributed items from the past 14 days.
-  // Look back beyond just yesterday so items aren't lost across rest days or
-  // days where the subject wasn't on the timetable.
-  // Only collect if the subject appears in today's timetable.
-  // Enforce the 5-per-subject cap — excess items simply wait for the next day.
-  const carried = [];
-  const carriedKeys = new Set();
-  const carriedBySubj = {};
-
-  for (let back = 1; back <= 14; back++) {
-    const past = new Date(d);
-    past.setDate(past.getDate() - back);
-    const pastStr = past.toISOString().slice(0, 10);
-    const pastItems = state.revSchedule[pastStr] || [];
-    for (const item of pastItems) {
-      if (item.status === "done") continue;
-      if (!todaySubjects.includes(item.subject)) continue;
-      const key = item.subject + "|" + item.topic;
-      if (carriedKeys.has(key)) continue;  // already queued from a nearer day
-      // Respect 5-per-subject cap for carried items
-      const count = (carriedBySubj[item.subject] || 0);
-      if (count >= 5) continue;
-      carriedKeys.add(key);
-      carriedBySubj[item.subject] = count + 1;
-      // Strip the overdue flag — just silently fold in, no badge
-      carried.push({ ...item, scheduledDate: dateStr, overdue: false });
-    }
+  // If rest day, nothing to schedule
+  if (todaySubjects.length === 0) {
+    state.revSchedule[dateStr] = [];
+    saveState();
+    return [];
   }
 
-  // Track topics already queued
-  const alreadyIn = new Set(carried.map(i => i.subject + "|" + i.topic));
+  // Build the schedule purely from the current TL state + spaced rep data.
+  // No carry-forward of stale items — just pick the most urgent due topics
+  // for each of today's subjects, capped at exactly 5 per subject.
+  const items = [];
 
-  const newItems = [];
   for (const subject of todaySubjects) {
     const allT = allTopicsFlat(subject);
 
-    // Separate by TL, excluding already-queued topics and those not yet due
+    // Categorise every topic by its CURRENT traffic light and due-ness
     const reds = [], ambers = [], greens = [];
     for (const topic of allT) {
       const key = subject + "|" + topic;
-      if (alreadyIn.has(key)) continue;
       if (!isTopicDue(subject, topic, dateStr)) continue;
-      const tl = getTL(subject, topic);
+      const tl = getTL(subject, topic);  // always read live TL
       const sr = state.spacedRep[key];
       const daysSince = sr && sr.lastReviewed ? daysBetween(sr.lastReviewed, dateStr) : 9999;
       if (tl === "r") reds.push({ topic, daysSince });
@@ -2555,33 +2535,29 @@ function generateSchedule(dateStr) {
       else greens.push({ topic, daysSince });
     }
 
-    // Sort by most overdue first
+    // Sort most overdue first (longest since last review)
     reds.sort((a, b) => b.daysSince - a.daysSince);
     ambers.sort((a, b) => b.daysSince - a.daysSince);
     greens.sort((a, b) => b.daysSince - a.daysSince);
 
-    // Slots remaining after carried items fill first
-    const slotsLeft = Math.max(0, 5 - (carriedBySubj[subject] || 0));
-
+    // Fill exactly 5 slots: red first, then amber, then green
+    let remaining = 5;
     const take = (arr, limit, tl) => arr.slice(0, limit).map(x => ({
       id: uid(),
       subject,
       topic: x.topic,
       tl,
       status: "pending",
-      scheduledDate: dateStr,
-      overdue: false
+      scheduledDate: dateStr
     }));
 
-    let remaining = slotsLeft;
     const redItems = take(reds,   Math.min(remaining, reds.length),   "r"); remaining -= redItems.length;
     const ambItems = take(ambers, Math.min(remaining, ambers.length), "a"); remaining -= ambItems.length;
     const grnItems = take(greens, Math.min(remaining, greens.length), "g");
 
-    newItems.push(...redItems, ...ambItems, ...grnItems);
+    items.push(...redItems, ...ambItems, ...grnItems);
   }
 
-  const items = [...carried, ...newItems];
   state.revSchedule[dateStr] = items;
   saveState();
   return items;
@@ -2602,31 +2578,30 @@ function completeRevItem(id, dateStr) {
   item.status = "done";
   item.completedDate = dateStr;
 
+  // Always read the CURRENT traffic light (user may have just changed it via dots)
+  const currentTL = getTL(item.subject, item.topic);
+  // Update stored tl on the item to match
+  item.tl = currentTL;
+
   const key = item.subject + "|" + item.topic;
   if (!state.spacedRep[key]) {
-    state.spacedRep[key] = { lastReviewed: null, interval: getDefaultInterval(item.tl), reps: 0 };
+    state.spacedRep[key] = { lastReviewed: null, interval: getDefaultInterval(currentTL), reps: 0 };
   }
   const sr = state.spacedRep[key];
   sr.reps = (sr.reps || 0) + 1;
 
-  if (item.tl === "r") {
+  // Anki-style interval scaling based on current TL colour
+  if (currentTL === "r") {
+    // Red: short intervals — 1 → 2 → 4 → 7
     sr.interval = sr.reps <= 1 ? 2 : sr.reps <= 2 ? 4 : 7;
-  } else if (item.tl === "a") {
+  } else if (currentTL === "a") {
+    // Amber: medium intervals — 4 → 7 → 10 → 14
     sr.interval = sr.reps <= 1 ? 5 : sr.reps <= 3 ? 10 : 14;
   } else {
-    sr.interval = sr.reps <= 1 ? 14 : 21;
+    // Green: long intervals — 14 → 21 → 30
+    sr.interval = sr.reps <= 1 ? 14 : sr.reps <= 3 ? 21 : 30;
   }
   sr.lastReviewed = dateStr;
-
-  // Auto-promote the traffic light rating based on spaced rep progress:
-  // Red → Amber once interval reaches 7 days (3+ successful reviews)
-  // Amber → Green once interval reaches 14 days (4+ successful reviews)
-  const currentTL = getTL(item.subject, item.topic);
-  if (currentTL === "r" && sr.interval >= 7) {
-    setTL(item.subject, item.topic, "a");
-  } else if (currentTL === "a" && sr.interval >= 14) {
-    setTL(item.subject, item.topic, "g");
-  }
 
   // Remove this topic from future scheduled days so they regenerate fresh
   invalidateFutureSchedule(item.subject, item.topic);
@@ -2671,9 +2646,7 @@ function renderHomeRevList() {
     bySubject[item.subject].push(item);
   }
 
-  const tlDotColor = tl => tl === "r" ? "var(--red-dot)" : tl === "a" ? "var(--amber-dot)" : "var(--green-dot)";
-
-  let html = `<div class="text-sm text-secondary" style="margin-bottom:8px;">${done} done / ${total} total</div>`;
+  let html = `<div class="text-sm text-secondary" style="margin-bottom:8px;">${done} / ${total} done</div>`;
 
   for (const [subj, sitems] of Object.entries(bySubject)) {
     html += `<div class="rev-subject-group">
@@ -2681,12 +2654,17 @@ function renderHomeRevList() {
     for (const item of sitems) {
       const isDone = item.status === "done";
       const doneCls = isDone ? " done" : "";
-      // Dot IS the tick button — clicking marks done
-      const dotHtml = isDone
+      const currentTL = getTL(item.subject, item.topic);
+      // 3-dot TL selector matching the traffic light page
+      const dotsHtml = isDone
         ? `<span class="rev-tl-dot-done" title="Done">✓</span>`
-        : `<button class="rev-tl-dot-btn" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-tl="${escHtml(item.tl)}" title="Tap to mark done" style="background:${tlDotColor(item.tl)};"></button>`;
+        : `<span class="rev-tl-dots">
+            <span class="tl-dot tl-dot-r${currentTL === "r" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="r"></span>
+            <span class="tl-dot tl-dot-a${currentTL === "a" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="a"></span>
+            <span class="tl-dot tl-dot-g${currentTL === "g" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="g"></span>
+          </span>`;
       html += `<div class="rev-item${doneCls}">
-        ${dotHtml}
+        ${dotsHtml}
         <span class="rev-topic-name">${escHtml(item.topic)}</span>
       </div>`;
     }
@@ -2695,14 +2673,19 @@ function renderHomeRevList() {
 
   el.innerHTML = html;
 
-  // Wire dot-as-tick-button
-  el.querySelectorAll(".rev-tl-dot-btn[data-home-rev-id]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.homeRevId;
-      const ds = btn.dataset.homeRevDate;
-      const tl = btn.dataset.tl;
+  // Wire 3-dot TL selectors: clicking completes + sets TL colour
+  el.querySelectorAll(".rev-tl-dots .tl-dot[data-home-rev-id]").forEach(dot => {
+    dot.addEventListener("click", () => {
+      const id = dot.dataset.homeRevId;
+      const ds = dot.dataset.homeRevDate;
+      const subj = dot.dataset.subj;
+      const topic = dot.dataset.topic;
+      const val = dot.dataset.val;
+      // Update the traffic light rating
+      setTL(subj, topic, val);
+      // Complete the revision item
       completeRevItem(id, ds);
-      if (tl === "r" || tl === "a") triggerConfetti(btn);
+      triggerConfetti(dot);
       renderHomeRevList();
       renderRevScheduleView(viewDate);
     });
@@ -2765,24 +2748,27 @@ function renderRevScheduleView(dateStr) {
     let html = '<div class="card">';
     const done = items.filter(i => i.status === "done").length;
     html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <span class="text-sm text-secondary">${done} done / ${items.length} total</span>
+      <span class="text-sm text-secondary">${done} / ${items.length} done</span>
       <button class="btn btn-sm" id="btnRegenDay">Regenerate</button>
     </div>`;
 
     for (const [subj, sitems] of Object.entries(bySubject)) {
-      const cls = getSubjectClass(subj);
       html += `<div class="rev-subject-group">
         <div class="rev-subject-label">${escHtml(subj)}</div>`;
       for (const item of sitems) {
         const isDone = item.status === "done";
         const doneCls = isDone ? " done" : "";
-        // TL dot IS the tick button
-        const dotHtml = isDone
+        const currentTL = getTL(item.subject, item.topic);
+        // 3-dot TL selector matching the traffic light page
+        const dotsHtml = isDone
           ? `<span class="rev-tl-dot-done" title="Done">✓</span>`
-          : `<button class="rev-tl-dot-btn tasks-rev-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" data-tl="${escHtml(item.tl)}" title="Tap to mark done" style="background:${tlDotColor(item.tl)};"></button>`;
+          : `<span class="rev-tl-dots">
+              <span class="tl-dot tl-dot-r${currentTL === "r" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="r"></span>
+              <span class="tl-dot tl-dot-a${currentTL === "a" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="a"></span>
+              <span class="tl-dot tl-dot-g${currentTL === "g" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="g"></span>
+            </span>`;
         html += `<div class="rev-item${doneCls}">
-          ${dotHtml}
-          <span class="badge ${cls}" style="font-size:9px;padding:1px 5px;flex-shrink:0;">${escHtml(subj.split(" ")[0])}</span>
+          ${dotsHtml}
           <span class="rev-topic-name">${escHtml(item.topic)}</span>
         </div>`;
       }
@@ -2791,14 +2777,17 @@ function renderRevScheduleView(dateStr) {
     html += `</div>`;
     el.innerHTML = html;
 
-    // Dot-as-tick-button wiring
-    el.querySelectorAll(".tasks-rev-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const ds = btn.dataset.date;
-        const tl = btn.dataset.tl;
+    // Wire 3-dot TL selectors on tasks page
+    el.querySelectorAll(".rev-tl-dots .tl-dot[data-task-rev-id]").forEach(dot => {
+      dot.addEventListener("click", () => {
+        const id = dot.dataset.taskRevId;
+        const ds = dot.dataset.taskRevDate;
+        const subj = dot.dataset.subj;
+        const topic = dot.dataset.topic;
+        const val = dot.dataset.val;
+        setTL(subj, topic, val);
         completeRevItem(id, ds);
-        if (tl === "r" || tl === "a") triggerConfetti(btn);
+        triggerConfetti(dot);
         renderRevScheduleView(viewDate);
         renderHomeRevList();
       });
@@ -3001,8 +2990,8 @@ document.getElementById("btnGenItinerary").addEventListener("click", () => {
 
       // Today's topics
       prompt += `Today's topics:\n`;
-      for (const i of reds)   prompt += `  🔴 ${i.topic}${i.overdue ? " [carried forward]" : ""}\n`;
-      for (const i of ambers) prompt += `  🟡 ${i.topic}${i.overdue ? " [carried forward]" : ""}\n`;
+      for (const i of reds)   prompt += `  🔴 ${i.topic}\n`;
+      for (const i of ambers) prompt += `  🟡 ${i.topic}\n`;
       for (const i of greens) prompt += `  🟢 ${i.topic}\n`;
       prompt += `\n`;
 
@@ -3713,27 +3702,26 @@ function renderHomeTodoPreview() {
   });
 }
 
+function addTodo() {
+  const input = document.getElementById("todoInput");
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  state.todos.push({ text, completed: false, createdAt: Date.now() });
+  saveState();
+  input.value = "";
+  renderTodos();
+  renderHomePreview();
+}
+
 function setupTodoListeners() {
   const btnAdd = document.getElementById("btnAddTodo");
   const input = document.getElementById("todoInput");
 
-  if (btnAdd) {
-    btnAdd.onclick = () => {
-      const text = input.value.trim();
-      if (!text) return;
-      state.todos.push({ text, completed: false, createdAt: Date.now() });
-      saveState();
-      input.value = "";
-      renderTodos();
-      renderHomePreview();
-    };
-  }
-
+  if (btnAdd) btnAdd.onclick = addTodo;
   if (input) {
-    input.onkeypress = (e) => {
-      if (e.key === "Enter") {
-        btnAdd.click();
-      }
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") { e.preventDefault(); addTodo(); }
     };
   }
 }
@@ -3747,15 +3735,40 @@ setupTodoListeners(); // Also try immediately
    ═══════════════════════════════════════════════════════════════════ */
 (function autoGenerateSchedule() {
   const todayStr = getTodayStr();
-  // Generate today and the next 7 days if not already done
-  for (let offset = 0; offset <= 7; offset++) {
-    const dateStr = getDateStr(offset);
-    const existing = state.revSchedule[dateStr];
-    // Only generate if empty — preserves manually-ticked progress
-    if (!existing || existing.length === 0) {
-      generateSchedule(dateStr);
+
+  // Clean out any schedule entries older than yesterday
+  // (they're stale and may reference wrong TL colours)
+  const yesterday = getDateStr(-1);
+  for (const key of Object.keys(state.revSchedule)) {
+    if (key < yesterday) delete state.revSchedule[key];
+  }
+
+  // Regenerate today fresh each session so TL colours are current.
+  // Preserve today's progress (done items) by merging.
+  const todayExisting = state.revSchedule[todayStr] || [];
+  const todayDone = todayExisting.filter(i => i.status === "done");
+  const todayDoneKeys = new Set(todayDone.map(i => i.subject + "|" + i.topic));
+
+  // Generate fresh schedule
+  delete state.revSchedule[todayStr];
+  generateSchedule(todayStr);
+
+  // Merge back done items: mark matching items as done, drop duplicates
+  const freshItems = state.revSchedule[todayStr] || [];
+  for (const item of freshItems) {
+    const key = item.subject + "|" + item.topic;
+    if (todayDoneKeys.has(key)) {
+      item.status = "done";
     }
   }
+
+  // Generate future days fresh
+  for (let offset = 1; offset <= 7; offset++) {
+    const dateStr = getDateStr(offset);
+    delete state.revSchedule[dateStr];
+    generateSchedule(dateStr);
+  }
+  saveState();
 })();
 
 if (!location.hash) location.hash = "#home";
