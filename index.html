@@ -1174,6 +1174,56 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 .gap1 { gap: var(--spacing); }
 .text-sm { font-size: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   REVISION SCHEDULER
+   ═══════════════════════════════════════════════════════════════ */
+.day-nav {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px; font-weight: 400;
+}
+.day-nav-label { flex: 1; text-align: center; }
+
+.rev-subject-group { margin-bottom: 12px; }
+.rev-subject-label {
+  font-size: 10px; font-weight: 400; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.rev-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 300;
+}
+.rev-item.done { opacity: 0.4; text-decoration: line-through; }
+.rev-item.skipped { opacity: 0.5; font-style: italic; }
+
+.rev-tl-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.rev-topic-name { flex: 1; }
+.rev-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.rev-action-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 3px; cursor: pointer; padding: 2px 6px;
+  font-size: 11px; color: var(--text-secondary);
+  font-family: inherit;
+}
+.rev-action-btn:hover { border-color: var(--border-emphasis); color: var(--text-primary); }
+.rev-action-btn.done-btn:hover { color: var(--green-text); border-color: var(--green-dot); }
+
+.rev-preview-day {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 12px; margin-bottom: 8px;
+}
+
+.overdue-badge {
+  font-size: 9px; background: var(--red-fill); color: var(--red-text);
+  padding: 1px 5px; border-radius: 2px; margin-left: 4px;
+}
 </style>
 </head>
 <body>
@@ -1282,9 +1332,12 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 
       <!-- Tools -->
       <div class="home-tools">
-        <div class="card">
-          <h3>Tasks</h3>
-          <div id="homeTasksPreview" class="mt1"></div>
+        <div class="card" id="homeRevCard">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="margin-bottom:0;">Today's Revision Plan</h3>
+            <button class="btn btn-sm" id="btnGenRevHome">Generate</button>
+          </div>
+          <div id="homeRevList"></div>
         </div>
 
         <div class="card mt2">
@@ -1451,6 +1504,14 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   <div class="page" id="page-todos">
     <div class="container">
       <h2>Tasks</h2>
+
+      <div class="day-nav" id="dayNav">
+        <button class="btn btn-sm" id="dayNavPrev">&#9664;</button>
+        <span id="dayNavLabel" class="day-nav-label"></span>
+        <button class="btn btn-sm" id="dayNavNext">&#9654;</button>
+      </div>
+      <div id="revScheduleView"></div>
+      <div class="section-divider" style="margin:16px 0;border-top:1px solid var(--border);"></div>
 
       <div class="card">
         <h3>Add a task</h3>
@@ -2242,6 +2303,8 @@ function loadState() {
   if (!state.weekCount) state.weekCount = {};
   if (!state.diary) state.diary = [];
   if (!state.todos) state.todos = [];
+  if (!state.revSchedule) state.revSchedule = {};
+  if (!state.spacedRep) state.spacedRep = {};
   for (const s of SUBJECTS) {
     if (!state.papers[s]) state.papers[s] = [];
     if (state.weekCount[s] === undefined) state.weekCount[s] = 0;
@@ -2292,6 +2355,9 @@ function route() {
   else if (hash === "countdown") renderCountdown();
   else if (hash === "diary") renderDiary();
   else if (hash === "todos") {
+    viewDate = getTodayStr();
+    setupDayNav();
+    renderRevScheduleView(viewDate);
     renderTodos();
     setupTodoListeners();
   }
@@ -2382,6 +2448,433 @@ function escHtml(s) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   SCHEDULING ENGINE
+   ═══════════════════════════════════════════════════════════════════ */
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function getDateStr(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetween(d1Str, d2Str) {
+  const d1 = new Date(d1Str + "T00:00:00");
+  const d2 = new Date(d2Str + "T00:00:00");
+  return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+}
+
+function getDefaultInterval(tl) {
+  if (tl === "r") return 1;
+  if (tl === "a") return 4;
+  return 14;
+}
+
+function isTopicDue(subject, topic, dateStr) {
+  const key = subject + "|" + topic;
+  const sr = state.spacedRep[key];
+  if (!sr || !sr.lastReviewed) return true;
+  const nextDue = daysBetween(getTodayStr(), dateStr) + daysBetween(sr.lastReviewed, getTodayStr());
+  // Simpler: days since lastReviewed >= interval
+  const daysSince = daysBetween(sr.lastReviewed, dateStr);
+  return daysSince >= sr.interval;
+}
+
+function generateSchedule(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const dow = d.getDay();
+  const todaySubjects = TIMETABLE[dow] || [];
+
+  // Get yesterday's date string
+  const yesterday = new Date(d);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  // Collect carried-forward items from yesterday
+  const carried = [];
+  const yesterdayItems = state.revSchedule[yesterdayStr] || [];
+  for (const item of yesterdayItems) {
+    if (item.status === "done") continue; // done items don't carry
+    // Red always carries; amber/green only if subject scheduled today
+    if (item.tl === "r") {
+      carried.push({ ...item, overdue: true, scheduledDate: dateStr });
+    } else if (todaySubjects.includes(item.subject)) {
+      carried.push({ ...item, overdue: true, scheduledDate: dateStr });
+    }
+  }
+
+  // Track topics already in the list (carried + new)
+  const alreadyIn = new Set(carried.map(i => i.subject + "|" + i.topic));
+
+  const newItems = [];
+  for (const subject of todaySubjects) {
+    const allT = allTopicsFlat(subject);
+    const todayStr = getTodayStr();
+
+    // Separate by TL
+    const reds = [], ambers = [], greens = [];
+    for (const topic of allT) {
+      const key = subject + "|" + topic;
+      if (alreadyIn.has(key)) continue;
+      if (!isTopicDue(subject, topic, dateStr)) continue;
+      const tl = getTL(subject, topic);
+      const sr = state.spacedRep[key];
+      const daysSince = sr && sr.lastReviewed ? daysBetween(sr.lastReviewed, dateStr) : 9999;
+      if (tl === "r") reds.push({ topic, daysSince });
+      else if (tl === "a") ambers.push({ topic, daysSince });
+      else greens.push({ topic, daysSince });
+    }
+
+    // Sort by most overdue first
+    reds.sort((a, b) => b.daysSince - a.daysSince);
+    ambers.sort((a, b) => b.daysSince - a.daysSince);
+    greens.sort((a, b) => b.daysSince - a.daysSince);
+
+    // Take limits
+    const take = (arr, limit, tl) => arr.slice(0, limit).map(x => ({
+      id: uid(),
+      subject,
+      topic: x.topic,
+      tl,
+      status: "pending",
+      scheduledDate: dateStr,
+      overdue: false
+    }));
+
+    newItems.push(...take(reds, 5, "r"));
+    newItems.push(...take(ambers, 3, "a"));
+    newItems.push(...take(greens, 1, "g"));
+  }
+
+  const items = [...carried, ...newItems];
+  state.revSchedule[dateStr] = items;
+  saveState();
+  return items;
+}
+
+function getOrGenerateSchedule(dateStr) {
+  const existing = state.revSchedule[dateStr];
+  if (existing && existing.length > 0) return existing;
+  return generateSchedule(dateStr);
+}
+
+function completeRevItem(id, dateStr) {
+  const items = state.revSchedule[dateStr];
+  if (!items) return;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  item.status = "done";
+  item.completedDate = dateStr;
+
+  const key = item.subject + "|" + item.topic;
+  if (!state.spacedRep[key]) {
+    state.spacedRep[key] = { lastReviewed: null, interval: getDefaultInterval(item.tl), reps: 0 };
+  }
+  const sr = state.spacedRep[key];
+  sr.reps = (sr.reps || 0) + 1;
+
+  if (item.tl === "r") {
+    sr.interval = sr.reps <= 1 ? 2 : sr.reps <= 2 ? 4 : 7;
+  } else if (item.tl === "a") {
+    sr.interval = sr.reps <= 1 ? 5 : sr.reps <= 3 ? 10 : 14;
+  } else {
+    sr.interval = sr.reps <= 1 ? 14 : 21;
+  }
+  sr.lastReviewed = dateStr;
+
+  // Remove this topic from future scheduled days so they regenerate fresh
+  invalidateFutureSchedule(item.subject, item.topic);
+
+  saveState();
+}
+
+function skipRevItem(id, dateStr) {
+  const items = state.revSchedule[dateStr];
+  if (!items) return;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.status = "skipped";
+  saveState();
+}
+
+function invalidateFutureSchedule(subject, topic) {
+  for (let i = 1; i <= 14; i++) {
+    const ds = getDateStr(i);
+    const items = state.revSchedule[ds];
+    if (!items) continue;
+    const filtered = items.filter(it => !(it.subject === subject && it.topic === topic));
+    if (filtered.length !== items.length) {
+      state.revSchedule[ds] = filtered;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HOME REVISION LIST
+   ═══════════════════════════════════════════════════════════════════ */
+function renderHomeRevList() {
+  const el = document.getElementById("homeRevList");
+  if (!el) return;
+
+  const todayStr = getTodayStr();
+  const items = state.revSchedule[todayStr];
+
+  if (!items || items.length === 0) {
+    el.innerHTML = '<div class="text-sm text-secondary" style="padding:8px 0;">Click Generate to build today\'s plan.</div>';
+    return;
+  }
+
+  const done = items.filter(i => i.status === "done").length;
+  const total = items.length;
+
+  // Group by subject
+  const bySubject = {};
+  for (const item of items) {
+    if (!bySubject[item.subject]) bySubject[item.subject] = [];
+    bySubject[item.subject].push(item);
+  }
+
+  const tlDotColor = tl => tl === "r" ? "var(--red-dot)" : tl === "a" ? "var(--amber-dot)" : "var(--green-dot)";
+
+  let html = `<div class="text-sm text-secondary" style="margin-bottom:8px;">${done} done / ${total} total</div>`;
+
+  for (const [subj, sitems] of Object.entries(bySubject)) {
+    const cls = getSubjectClass(subj);
+    html += `<div class="rev-subject-group">
+      <div class="rev-subject-label">${escHtml(subj)}</div>`;
+    for (const item of sitems) {
+      const doneCls = item.status === "done" ? " done" : item.status === "skipped" ? " skipped" : "";
+      html += `<div class="rev-item${doneCls}">
+        <span class="rev-tl-dot" style="background:${tlDotColor(item.tl)};"></span>
+        <span class="rev-topic-name">${escHtml(item.topic)}</span>
+        <span class="badge ${cls}" style="font-size:9px;padding:1px 5px;">${escHtml(subj.split(" ")[0])}</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnGenRevHome = document.getElementById("btnGenRevHome");
+  if (btnGenRevHome) {
+    btnGenRevHome.addEventListener("click", () => {
+      generateSchedule(getTodayStr());
+      renderHomeRevList();
+    });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   TASKS PAGE — DAY NAV + REV SCHEDULE VIEW
+   ═══════════════════════════════════════════════════════════════════ */
+let viewDate = getTodayStr();
+
+function getDayNavLabel(dateStr) {
+  const todayStr = getTodayStr();
+  const tomorrowStr = getDateStr(1);
+  if (dateStr === todayStr) return "Today";
+  if (dateStr === tomorrowStr) return "Tomorrow";
+  const d = new Date(dateStr + "T00:00:00");
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function renderRevScheduleView(dateStr) {
+  const el = document.getElementById("revScheduleView");
+  if (!el) return;
+
+  // Update day nav label
+  const labelEl = document.getElementById("dayNavLabel");
+  if (labelEl) labelEl.textContent = getDayNavLabel(dateStr);
+
+  const d = new Date(dateStr + "T00:00:00");
+  const dow = d.getDay();
+  const todaySubjects = TIMETABLE[dow] || [];
+
+  if (todaySubjects.length === 0) {
+    el.innerHTML = '<div class="card" style="text-align:center;color:var(--text-secondary);font-size:14px;">Rest day 🛋️</div>';
+    return;
+  }
+
+  const todayStr = getTodayStr();
+  const isPastOrToday = dateStr <= todayStr;
+  const tlDotColor = tl => tl === "r" ? "var(--red-dot)" : tl === "a" ? "var(--amber-dot)" : "var(--green-dot)";
+
+  if (isPastOrToday) {
+    // Interactive view
+    const items = getOrGenerateSchedule(dateStr);
+    if (!items || items.length === 0) {
+      el.innerHTML = '<div class="card"><div class="text-sm text-secondary">No revision items for this day.</div></div>';
+      return;
+    }
+
+    const bySubject = {};
+    for (const item of items) {
+      if (!bySubject[item.subject]) bySubject[item.subject] = [];
+      bySubject[item.subject].push(item);
+    }
+
+    let html = '<div class="card">';
+    const done = items.filter(i => i.status === "done").length;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span class="text-sm text-secondary">${done} done / ${items.length} total</span>
+      <button class="btn btn-sm" id="btnRegenDay">Regenerate</button>
+    </div>`;
+
+    for (const [subj, sitems] of Object.entries(bySubject)) {
+      const cls = getSubjectClass(subj);
+      html += `<div class="rev-subject-group">
+        <div class="rev-subject-label">${escHtml(subj)}</div>`;
+      for (const item of sitems) {
+        const isDone = item.status === "done";
+        const isSkipped = item.status === "skipped";
+        const doneCls = isDone ? " done" : isSkipped ? " skipped" : "";
+        const overdueBadge = item.overdue ? `<span class="overdue-badge">overdue</span>` : "";
+        let actionsHtml = "";
+        if (!isDone && !isSkipped) {
+          actionsHtml = `<span class="rev-item-actions">
+            <button class="rev-action-btn done-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" title="Mark done">&#10003;</button>
+            <button class="rev-action-btn skip-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" title="Skip">&#8250;</button>
+          </span>`;
+        } else if (isSkipped) {
+          actionsHtml = `<span class="text-sm" style="color:var(--text-tertiary);font-size:11px;">(carried forward)</span>`;
+        }
+        html += `<div class="rev-item${doneCls}">
+          <span class="rev-tl-dot" style="background:${tlDotColor(item.tl)};"></span>
+          <span class="badge ${cls}" style="font-size:9px;padding:1px 5px;flex-shrink:0;">${escHtml(subj.split(" ")[0])}</span>
+          <span class="rev-topic-name">${escHtml(item.topic)}${overdueBadge}</span>
+          ${actionsHtml}
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+    el.innerHTML = html;
+
+    // Wire up done/skip buttons
+    el.querySelectorAll(".done-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const ds = btn.dataset.date;
+        const item = (state.revSchedule[ds] || []).find(i => i.id === id);
+        completeRevItem(id, ds);
+        if (item && (item.tl === "r" || item.tl === "a")) triggerConfetti(btn);
+        renderRevScheduleView(viewDate);
+        renderHomeRevList();
+      });
+    });
+
+    el.querySelectorAll(".skip-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        skipRevItem(btn.dataset.id, btn.dataset.date);
+        renderRevScheduleView(viewDate);
+        renderHomeRevList();
+      });
+    });
+
+    const regenBtn = document.getElementById("btnRegenDay");
+    if (regenBtn) {
+      regenBtn.addEventListener("click", () => {
+        delete state.revSchedule[dateStr];
+        saveState();
+        renderRevScheduleView(viewDate);
+        renderHomeRevList();
+      });
+    }
+
+  } else {
+    // Future: read-only preview
+    const items = getOrGenerateSchedule(dateStr);
+
+    if (!items || items.length === 0) {
+      el.innerHTML = '<div class="card"><div class="text-sm text-secondary">No revision items planned for this day.</div></div>';
+      return;
+    }
+
+    const bySubject = {};
+    for (const item of items) {
+      if (!bySubject[item.subject]) bySubject[item.subject] = [];
+      bySubject[item.subject].push(item);
+    }
+
+    let html = '<div class="card">';
+    html += `<div class="text-sm text-secondary" style="margin-bottom:8px;">Preview — ${items.length} items planned</div>`;
+
+    for (const [subj, sitems] of Object.entries(bySubject)) {
+      const cls = getSubjectClass(subj);
+      const rCount = sitems.filter(i => i.tl === "r").length;
+      const aCount = sitems.filter(i => i.tl === "a").length;
+      const gCount = sitems.filter(i => i.tl === "g").length;
+      const tlDotColor2 = tl => tl === "r" ? "var(--red-dot)" : tl === "a" ? "var(--amber-dot)" : "var(--green-dot)";
+
+      let summaryParts = [];
+      if (rCount) summaryParts.push(`<span style="color:var(--red-text);">${rCount} red</span>`);
+      if (aCount) summaryParts.push(`<span style="color:var(--amber-text);">${aCount} amber</span>`);
+      if (gCount) summaryParts.push(`<span style="color:var(--green-text);">${gCount} green</span>`);
+
+      html += `<div class="rev-subject-group">
+        <div class="rev-subject-label" style="display:flex;justify-content:space-between;">
+          <span>${escHtml(subj)}</span>
+          <span>${summaryParts.join(" &bull; ")}</span>
+        </div>`;
+
+      for (const item of sitems) {
+        html += `<div class="rev-item">
+          <span class="rev-tl-dot" style="background:${tlDotColor2(item.tl)};"></span>
+          <span class="badge ${cls}" style="font-size:9px;padding:1px 5px;flex-shrink:0;">${escHtml(subj.split(" ")[0])}</span>
+          <span class="rev-topic-name">${escHtml(item.topic)}</span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+    el.innerHTML = html;
+  }
+}
+
+function setupDayNav() {
+  const todayStr = getTodayStr();
+
+  const prevBtn = document.getElementById("dayNavPrev");
+  const nextBtn = document.getElementById("dayNavNext");
+
+  if (prevBtn) {
+    prevBtn.onclick = () => {
+      const minDate = getDateStr(-14);
+      if (viewDate > minDate) {
+        const d = new Date(viewDate + "T00:00:00");
+        d.setDate(d.getDate() - 1);
+        viewDate = d.toISOString().slice(0, 10);
+        renderRevScheduleView(viewDate);
+      }
+    };
+  }
+
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      const maxDate = getDateStr(14);
+      if (viewDate < maxDate) {
+        const d = new Date(viewDate + "T00:00:00");
+        d.setDate(d.getDate() + 1);
+        viewDate = d.toISOString().slice(0, 10);
+        renderRevScheduleView(viewDate);
+      }
+    };
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    PAGE 1: HOME
    ═══════════════════════════════════════════════════════════════════ */
 function renderHome() {
@@ -2444,6 +2937,9 @@ function renderHome() {
     </div>`;
   }
   grid.innerHTML = gridHtml;
+
+  // Revision plan widget
+  renderHomeRevList();
 }
 
 document.getElementById("btnGenItinerary").addEventListener("click", () => {
@@ -2497,9 +2993,29 @@ document.getElementById("btnGenItinerary").addEventListener("click", () => {
     prompt += "\n";
   }
 
+  // Generate today's revision schedule and include in prompt
+  const todayRevItems = getOrGenerateSchedule(getTodayStr());
+  if (todayRevItems && todayRevItems.length > 0) {
+    prompt += `=== TODAY'S SPACED REPETITION SCHEDULE ===\n`;
+    const revBySubj = {};
+    for (const item of todayRevItems) {
+      if (!revBySubj[item.subject]) revBySubj[item.subject] = [];
+      revBySubj[item.subject].push(item);
+    }
+    for (const [subj, sitems] of Object.entries(revBySubj)) {
+      prompt += `${subj}:\n`;
+      for (const item of sitems) {
+        const tlLabel = item.tl === "r" ? "Red" : item.tl === "a" ? "Amber" : "Green";
+        prompt += `  - [${tlLabel}] ${item.topic}\n`;
+      }
+    }
+    prompt += "\n";
+    renderHomeRevList();
+  }
+
   prompt += `=== INSTRUCTIONS FOR CLAUDE ===\n`;
   prompt += `Produce a concise revision itinerary for today. For each subject:\n`;
-  prompt += `1. Topics to focus on (prioritise red first, then amber)\n`;
+  prompt += `1. Topics to focus on (prioritise red first, then amber — see spaced repetition schedule above)\n`;
   prompt += `2. Two exam-style practice questions per subject with brief model answers\n`;
   prompt += `3. Next past paper to sit\n`;
   prompt += `4. Any patterns spotted from wrong-topic notes across papers\n`;
@@ -3137,32 +3653,8 @@ function triggerConfetti(originEl) {
 }
 
 function renderHomePreview() {
-  const preview = document.getElementById("homeTasksPreview");
-  if (!preview) return;
-
-  const todos = state.todos || [];
-  if (todos.length === 0) {
-    preview.innerHTML = '<div class="text-sm text-secondary">No tasks. All clear! 🎉</div>';
-    return;
-  }
-
-  let html = '<div class="todo-preview">';
-  for (let i = 0; i < Math.min(todos.length, 5); i++) {
-    const todo = todos[i];
-    const checked = todo.completed ? " checked" : "";
-    html += `<div class="todo-preview-item">
-      <div class="todo-preview-check${checked}"></div>
-      <span>${escHtml(todo.text)}</span>
-    </div>`;
-  }
-  html += '</div>';
-  if (todos.length > 5) {
-    html += `<div class="text-sm text-secondary" style="margin-top:var(--spacing);padding-top:var(--spacing);border-top:1px solid var(--border);">
-      +${todos.length - 5} more task${todos.length - 5 !== 1 ? "s" : ""}
-    </div>`;
-  }
-
-  preview.innerHTML = html;
+  // homeTasksPreview replaced by homeRevList widget; this is a no-op kept for compatibility
+  renderHomeRevList();
 }
 
 function setupTodoListeners() {
