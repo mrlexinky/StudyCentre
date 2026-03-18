@@ -1197,32 +1197,40 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   padding: 7px 0; border-bottom: 1px solid var(--border);
   font-size: 13px; font-weight: 300;
 }
-.rev-item.done { opacity: 0.4; text-decoration: line-through; }
-.rev-item.skipped { opacity: 0.5; font-style: italic; }
+.rev-item.done { opacity: 0.35; text-decoration: line-through; }
 
+/* Static coloured dot (future/read-only views) */
 .rev-tl-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
 }
+
+/* Clickable traffic-light dot — IS the tick button */
+.rev-tl-dot-btn {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid transparent; padding: 0; cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  outline: none; background-clip: padding-box;
+}
+.rev-tl-dot-btn:hover {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 2px var(--border-emphasis);
+}
+.rev-tl-dot-btn:active { transform: scale(1.05); }
+
+/* Done state: muted grey circle with tiny tick */
+.rev-tl-dot-done {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border-emphasis);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; color: var(--bg-card); font-weight: 700; line-height: 1;
+}
+
 .rev-topic-name { flex: 1; }
 .rev-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
-
-.rev-action-btn {
-  background: none; border: 1px solid var(--border);
-  border-radius: 3px; cursor: pointer; padding: 2px 6px;
-  font-size: 11px; color: var(--text-secondary);
-  font-family: inherit;
-}
-.rev-action-btn:hover { border-color: var(--border-emphasis); color: var(--text-primary); }
-.rev-action-btn.done-btn:hover { color: var(--green-text); border-color: var(--green-dot); }
 
 .rev-preview-day {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: 4px; padding: 12px; margin-bottom: 8px;
-}
-
-.overdue-badge {
-  font-size: 9px; background: var(--red-fill); color: var(--red-text);
-  padding: 1px 5px; border-radius: 2px; margin-left: 4px;
 }
 </style>
 </head>
@@ -2497,31 +2505,43 @@ function generateSchedule(dateStr) {
   const dow = d.getDay();
   const todaySubjects = TIMETABLE[dow] || [];
 
-  // Get yesterday's date string
-  const yesterday = new Date(d);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
-
-  // Collect carried-forward items from yesterday
-  // Only carry if subject is scheduled today — never bleed across timetable days
+  // Collect silently-redistributed items from the past 14 days.
+  // Look back beyond just yesterday so items aren't lost across rest days or
+  // days where the subject wasn't on the timetable.
+  // Only collect if the subject appears in today's timetable.
+  // Enforce the 5-per-subject cap — excess items simply wait for the next day.
   const carried = [];
-  const yesterdayItems = state.revSchedule[yesterdayStr] || [];
-  for (const item of yesterdayItems) {
-    if (item.status === "done") continue; // done items don't carry
-    if (todaySubjects.includes(item.subject)) {
-      carried.push({ ...item, overdue: true, scheduledDate: dateStr });
+  const carriedKeys = new Set();
+  const carriedBySubj = {};
+
+  for (let back = 1; back <= 14; back++) {
+    const past = new Date(d);
+    past.setDate(past.getDate() - back);
+    const pastStr = past.toISOString().slice(0, 10);
+    const pastItems = state.revSchedule[pastStr] || [];
+    for (const item of pastItems) {
+      if (item.status === "done") continue;
+      if (!todaySubjects.includes(item.subject)) continue;
+      const key = item.subject + "|" + item.topic;
+      if (carriedKeys.has(key)) continue;  // already queued from a nearer day
+      // Respect 5-per-subject cap for carried items
+      const count = (carriedBySubj[item.subject] || 0);
+      if (count >= 5) continue;
+      carriedKeys.add(key);
+      carriedBySubj[item.subject] = count + 1;
+      // Strip the overdue flag — just silently fold in, no badge
+      carried.push({ ...item, scheduledDate: dateStr, overdue: false });
     }
   }
 
-  // Track topics already in the list (carried + new)
+  // Track topics already queued
   const alreadyIn = new Set(carried.map(i => i.subject + "|" + i.topic));
 
   const newItems = [];
   for (const subject of todaySubjects) {
     const allT = allTopicsFlat(subject);
-    const todayStr = getTodayStr();
 
-    // Separate by TL
+    // Separate by TL, excluding already-queued topics and those not yet due
     const reds = [], ambers = [], greens = [];
     for (const topic of allT) {
       const key = subject + "|" + topic;
@@ -2540,11 +2560,9 @@ function generateSchedule(dateStr) {
     ambers.sort((a, b) => b.daysSince - a.daysSince);
     greens.sort((a, b) => b.daysSince - a.daysSince);
 
-    // Count overdue items already in list for this subject
-    const overdueForSubj = carried.filter(i => i.subject === subject).length;
-    const slotsLeft = Math.max(0, 5 - overdueForSubj);
+    // Slots remaining after carried items fill first
+    const slotsLeft = Math.max(0, 5 - (carriedBySubj[subject] || 0));
 
-    // Fill remaining slots: red first, then amber, then green (total cap 5 per subject)
     const take = (arr, limit, tl) => arr.slice(0, limit).map(x => ({
       id: uid(),
       subject,
@@ -2556,9 +2574,9 @@ function generateSchedule(dateStr) {
     }));
 
     let remaining = slotsLeft;
-    const redItems  = take(reds,   Math.min(remaining, reds.length),   "r"); remaining -= redItems.length;
-    const ambItems  = take(ambers, Math.min(remaining, ambers.length), "a"); remaining -= ambItems.length;
-    const grnItems  = take(greens, Math.min(remaining, greens.length), "g");
+    const redItems = take(reds,   Math.min(remaining, reds.length),   "r"); remaining -= redItems.length;
+    const ambItems = take(ambers, Math.min(remaining, ambers.length), "a"); remaining -= ambItems.length;
+    const grnItems = take(greens, Math.min(remaining, greens.length), "g");
 
     newItems.push(...redItems, ...ambItems, ...grnItems);
   }
@@ -2600,18 +2618,19 @@ function completeRevItem(id, dateStr) {
   }
   sr.lastReviewed = dateStr;
 
+  // Auto-promote the traffic light rating based on spaced rep progress:
+  // Red → Amber once interval reaches 7 days (3+ successful reviews)
+  // Amber → Green once interval reaches 14 days (4+ successful reviews)
+  const currentTL = getTL(item.subject, item.topic);
+  if (currentTL === "r" && sr.interval >= 7) {
+    setTL(item.subject, item.topic, "a");
+  } else if (currentTL === "a" && sr.interval >= 14) {
+    setTL(item.subject, item.topic, "g");
+  }
+
   // Remove this topic from future scheduled days so they regenerate fresh
   invalidateFutureSchedule(item.subject, item.topic);
 
-  saveState();
-}
-
-function skipRevItem(id, dateStr) {
-  const items = state.revSchedule[dateStr];
-  if (!items) return;
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-  item.status = "skipped";
   saveState();
 }
 
@@ -2662,14 +2681,13 @@ function renderHomeRevList() {
     for (const item of sitems) {
       const isDone = item.status === "done";
       const doneCls = isDone ? " done" : "";
-      const tickHtml = isDone
-        ? `<span class="todo-checkbox checked" style="width:18px;height:18px;font-size:11px;flex-shrink:0;">✓</span>`
-        : `<button class="todo-checkbox" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" title="Mark done" style="width:18px;height:18px;border-radius:3px;flex-shrink:0;font-family:inherit;font-size:11px;"></button>`;
-      html += `<div class="rev-item${doneCls}" style="gap:8px;">
-        ${tickHtml}
-        <span class="rev-tl-dot" style="background:${tlDotColor(item.tl)};"></span>
+      // Dot IS the tick button — clicking marks done
+      const dotHtml = isDone
+        ? `<span class="rev-tl-dot-done" title="Done">✓</span>`
+        : `<button class="rev-tl-dot-btn" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-tl="${escHtml(item.tl)}" title="Tap to mark done" style="background:${tlDotColor(item.tl)};"></button>`;
+      html += `<div class="rev-item${doneCls}">
+        ${dotHtml}
         <span class="rev-topic-name">${escHtml(item.topic)}</span>
-        ${item.overdue ? `<span class="overdue-badge">overdue</span>` : ""}
       </div>`;
     }
     html += `</div>`;
@@ -2677,15 +2695,14 @@ function renderHomeRevList() {
 
   el.innerHTML = html;
 
-  // Wire tick buttons
-  el.querySelectorAll("button[data-home-rev-id]").forEach(btn => {
+  // Wire dot-as-tick-button
+  el.querySelectorAll(".rev-tl-dot-btn[data-home-rev-id]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.homeRevId;
       const ds = btn.dataset.homeRevDate;
-      const item = (state.revSchedule[ds] || []).find(i => i.id === id);
-      if (!item) return;
+      const tl = btn.dataset.tl;
       completeRevItem(id, ds);
-      if (item.tl === "r" || item.tl === "a") triggerConfetti(btn);
+      if (tl === "r" || tl === "a") triggerConfetti(btn);
       renderHomeRevList();
       renderRevScheduleView(viewDate);
     });
@@ -2759,18 +2776,14 @@ function renderRevScheduleView(dateStr) {
       for (const item of sitems) {
         const isDone = item.status === "done";
         const doneCls = isDone ? " done" : "";
-        const overdueBadge = item.overdue ? `<span class="overdue-badge">overdue</span>` : "";
-        let actionsHtml = "";
-        if (!isDone) {
-          actionsHtml = `<span class="rev-item-actions">
-            <button class="rev-action-btn done-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" title="Mark done">&#10003;</button>
-          </span>`;
-        }
+        // TL dot IS the tick button
+        const dotHtml = isDone
+          ? `<span class="rev-tl-dot-done" title="Done">✓</span>`
+          : `<button class="rev-tl-dot-btn tasks-rev-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" data-tl="${escHtml(item.tl)}" title="Tap to mark done" style="background:${tlDotColor(item.tl)};"></button>`;
         html += `<div class="rev-item${doneCls}">
-          <span class="rev-tl-dot" style="background:${tlDotColor(item.tl)};"></span>
+          ${dotHtml}
           <span class="badge ${cls}" style="font-size:9px;padding:1px 5px;flex-shrink:0;">${escHtml(subj.split(" ")[0])}</span>
-          <span class="rev-topic-name">${escHtml(item.topic)}${overdueBadge}</span>
-          ${actionsHtml}
+          <span class="rev-topic-name">${escHtml(item.topic)}</span>
         </div>`;
       }
       html += `</div>`;
@@ -2778,20 +2791,18 @@ function renderRevScheduleView(dateStr) {
     html += `</div>`;
     el.innerHTML = html;
 
-    // Wire up done buttons
-    el.querySelectorAll(".done-btn").forEach(btn => {
+    // Dot-as-tick-button wiring
+    el.querySelectorAll(".tasks-rev-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.id;
         const ds = btn.dataset.date;
-        const item = (state.revSchedule[ds] || []).find(i => i.id === id);
+        const tl = btn.dataset.tl;
         completeRevItem(id, ds);
-        if (item && (item.tl === "r" || item.tl === "a")) triggerConfetti(btn);
+        if (tl === "r" || tl === "a") triggerConfetti(btn);
         renderRevScheduleView(viewDate);
         renderHomeRevList();
       });
     });
-
-    // Skip button removed — incomplete items carry forward automatically overnight
 
     const regenBtn = document.getElementById("btnRegenDay");
     if (regenBtn) {
