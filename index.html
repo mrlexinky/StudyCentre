@@ -420,6 +420,47 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   flex-shrink: 0;
 }
 
+/* Home progress row */
+.home-progress-row {
+  display: flex;
+  gap: calc(var(--spacing) * 3);
+  flex-wrap: wrap;
+  padding: calc(var(--spacing) * 2) 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: calc(var(--spacing) * 1);
+}
+
+.progress-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-stat-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.progress-stat-value {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.progress-stat-label {
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.progress-stat-detail {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Home tools section */
 .home-tools { }
 
@@ -566,6 +607,22 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 .tl-dot-r { background: var(--red-dot); }
 .tl-dot-a { background: var(--amber-dot); }
 .tl-dot-g { background: var(--green-dot); }
+
+.tl-search-wrap {
+  margin-bottom: calc(var(--spacing) * 2);
+}
+
+.tl-search-input {
+  width: 100%;
+  padding: calc(var(--spacing) * 1.2) calc(var(--spacing) * 2);
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+}
+
+.tl-topic-row.search-hidden { display: none; }
+.tl-section-header.search-hidden { display: none; }
 
 .tl-saved {
   font-size: 11px;
@@ -1230,6 +1287,14 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 .rev-topic-name { flex: 1; }
+
+.rev-skip-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); font-size: 11px; padding: 2px 6px;
+  border-radius: 3px; flex-shrink: 0; line-height: 1;
+  transition: color 0.12s, background 0.12s;
+}
+.rev-skip-btn:hover { color: var(--red-text); background: var(--red-fill); }
 .rev-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
 .rev-preview-day {
@@ -1338,8 +1403,13 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       </div>
     </div>
 
+    <!-- Streak + weekly progress -->
+    <div class="container" style="padding-top: calc(var(--spacing)*2); padding-bottom: 0;">
+      <div class="home-progress-row" id="homeProgressRow"></div>
+    </div>
+
     <!-- Subject stats grid -->
-    <div class="container" style="padding-top: calc(var(--spacing)*3); padding-bottom: 0;">
+    <div class="container" style="padding-top: calc(var(--spacing)*2); padding-bottom: 0;">
       <div class="stats-grid" id="homeStatsGrid"></div>
 
       <!-- Tools -->
@@ -1381,6 +1451,9 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     <h2>Traffic Lights</h2>
     <div class="tl-tabs" id="tlTabs"></div>
     <div class="tl-summary" id="tlSummary"></div>
+    <div class="tl-search-wrap">
+      <input type="text" id="tlSearch" placeholder="Search topics…" class="tl-search-input">
+    </div>
     <div id="tlTopics"></div>
     <div class="tl-saved" id="tlSaved"></div>
   </div><!-- /container -->
@@ -2486,6 +2559,9 @@ function daysBetween(d1Str, d2Str) {
   return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 }
 
+const MAX_PER_SUBJECT = 5;
+const MAX_PER_DAY = 15;
+
 function getDefaultInterval(tl) {
   if (tl === "r") return 1;
   if (tl === "a") return 4;
@@ -2496,10 +2572,27 @@ function isTopicDue(subject, topic, dateStr) {
   const key = subject + "|" + topic;
   const sr = state.spacedRep[key];
   if (!sr || !sr.lastReviewed) return true;
-  const nextDue = daysBetween(getTodayStr(), dateStr) + daysBetween(sr.lastReviewed, getTodayStr());
-  // Simpler: days since lastReviewed >= interval
   const daysSince = daysBetween(sr.lastReviewed, dateStr);
   return daysSince >= sr.interval;
+}
+
+/* Priority score: higher = more urgent.
+   Exam proximity gives a massive boost so subjects with near exams
+   get scheduled first. Red topics trump amber which trump green.
+   Within a colour, topics with the longest time since last review rank higher. */
+function topicPriority(subject, topic, tl, daysSince, dateStr) {
+  // Exam proximity: 0–100 bonus (100 = exam tomorrow, 0 = 90+ days away)
+  const ne = nextExam(subject);
+  const daysToExam = ne ? Math.max(0, daysUntil(ne.date)) : 90;
+  const examBoost = Math.max(0, 100 - daysToExam);
+
+  // TL urgency: red=300, amber=200, green=100
+  const tlWeight = tl === "r" ? 300 : tl === "a" ? 200 : 100;
+
+  // Overdue bonus: how many days past due (capped at 50)
+  const overdueBonus = Math.min(daysSince, 50);
+
+  return examBoost + tlWeight + overdueBonus;
 }
 
 function generateSchedule(dateStr) {
@@ -2507,56 +2600,59 @@ function generateSchedule(dateStr) {
   const dow = d.getDay();
   const todaySubjects = TIMETABLE[dow] || [];
 
-  // If rest day, nothing to schedule
   if (todaySubjects.length === 0) {
     state.revSchedule[dateStr] = [];
     saveState();
     return [];
   }
 
-  // Build the schedule purely from the current TL state + spaced rep data.
-  // No carry-forward of stale items — just pick the most urgent due topics
-  // for each of today's subjects, capped at exactly 5 per subject.
-  const items = [];
+  // Deduplicate subjects (Sunday has all 4 — no duplication risk, but be safe)
+  const uniqueSubjects = [...new Set(todaySubjects)];
 
-  for (const subject of todaySubjects) {
+  // Calculate per-subject slot allocation.
+  // Total capped at MAX_PER_DAY, distributed proportionally to subject count,
+  // each subject capped at MAX_PER_SUBJECT.
+  const perSubject = Math.min(MAX_PER_SUBJECT, Math.floor(MAX_PER_DAY / uniqueSubjects.length));
+
+  // Collect all candidate items across subjects
+  const subjectItems = {};
+
+  for (const subject of uniqueSubjects) {
     const allT = allTopicsFlat(subject);
+    const candidates = [];
 
-    // Categorise every topic by its CURRENT traffic light and due-ness
-    const reds = [], ambers = [], greens = [];
     for (const topic of allT) {
       const key = subject + "|" + topic;
       if (!isTopicDue(subject, topic, dateStr)) continue;
-      const tl = getTL(subject, topic);  // always read live TL
+      const tl = getTL(subject, topic);
       const sr = state.spacedRep[key];
       const daysSince = sr && sr.lastReviewed ? daysBetween(sr.lastReviewed, dateStr) : 9999;
-      if (tl === "r") reds.push({ topic, daysSince });
-      else if (tl === "a") ambers.push({ topic, daysSince });
-      else greens.push({ topic, daysSince });
+      const priority = topicPriority(subject, topic, tl, daysSince, dateStr);
+      candidates.push({ topic, tl, daysSince, priority });
     }
 
-    // Sort most overdue first (longest since last review)
-    reds.sort((a, b) => b.daysSince - a.daysSince);
-    ambers.sort((a, b) => b.daysSince - a.daysSince);
-    greens.sort((a, b) => b.daysSince - a.daysSince);
+    // Sort by priority descending
+    candidates.sort((a, b) => b.priority - a.priority);
 
-    // Fill exactly 5 slots: red first, then amber, then green
-    let remaining = 5;
-    const take = (arr, limit, tl) => arr.slice(0, limit).map(x => ({
+    // Take up to perSubject items
+    subjectItems[subject] = candidates.slice(0, perSubject).map(c => ({
       id: uid(),
       subject,
-      topic: x.topic,
-      tl,
+      topic: c.topic,
+      tl: c.tl,
       status: "pending",
       scheduledDate: dateStr
     }));
-
-    const redItems = take(reds,   Math.min(remaining, reds.length),   "r"); remaining -= redItems.length;
-    const ambItems = take(ambers, Math.min(remaining, ambers.length), "a"); remaining -= ambItems.length;
-    const grnItems = take(greens, Math.min(remaining, greens.length), "g");
-
-    items.push(...redItems, ...ambItems, ...grnItems);
   }
+
+  // Flatten — guaranteed max MAX_PER_DAY
+  let items = [];
+  for (const subject of uniqueSubjects) {
+    items.push(...(subjectItems[subject] || []));
+  }
+
+  // Final safety cap
+  if (items.length > MAX_PER_DAY) items = items.slice(0, MAX_PER_DAY);
 
   state.revSchedule[dateStr] = items;
   saveState();
@@ -2621,6 +2717,17 @@ function invalidateFutureSchedule(subject, topic) {
   }
 }
 
+/* Skip: marks item as skipped (removes from today, doesn't change interval/reps).
+   The topic will naturally reappear next time the subject is scheduled. */
+function skipRevItem(id, dateStr) {
+  const items = state.revSchedule[dateStr];
+  if (!items) return;
+  const idx = items.findIndex(i => i.id === id);
+  if (idx === -1) return;
+  items.splice(idx, 1);
+  saveState();
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    HOME REVISION LIST
    ═══════════════════════════════════════════════════════════════════ */
@@ -2663,9 +2770,11 @@ function renderHomeRevList() {
             <span class="tl-dot tl-dot-a${currentTL === "a" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="a"></span>
             <span class="tl-dot tl-dot-g${currentTL === "g" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="g"></span>
           </span>`;
+      const skipBtn = isDone ? "" : `<button class="rev-skip-btn" data-skip-id="${escHtml(item.id)}" data-skip-date="${escHtml(todayStr)}" title="Skip for today">✕</button>`;
       html += `<div class="rev-item${doneCls}">
         ${dotsHtml}
         <span class="rev-topic-name">${escHtml(item.topic)}</span>
+        ${skipBtn}
       </div>`;
     }
     html += `</div>`;
@@ -2681,11 +2790,18 @@ function renderHomeRevList() {
       const subj = dot.dataset.subj;
       const topic = dot.dataset.topic;
       const val = dot.dataset.val;
-      // Update the traffic light rating
       setTL(subj, topic, val);
-      // Complete the revision item
       completeRevItem(id, ds);
       triggerConfetti(dot);
+      renderHomeRevList();
+      renderRevScheduleView(viewDate);
+    });
+  });
+
+  // Wire skip buttons
+  el.querySelectorAll(".rev-skip-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      skipRevItem(btn.dataset.skipId, btn.dataset.skipDate);
       renderHomeRevList();
       renderRevScheduleView(viewDate);
     });
@@ -2767,9 +2883,11 @@ function renderRevScheduleView(dateStr) {
               <span class="tl-dot tl-dot-a${currentTL === "a" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="a"></span>
               <span class="tl-dot tl-dot-g${currentTL === "g" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="g"></span>
             </span>`;
+        const skipBtn2 = isDone ? "" : `<button class="rev-skip-btn" data-skip-id="${escHtml(item.id)}" data-skip-date="${escHtml(dateStr)}" title="Skip for today">✕</button>`;
         html += `<div class="rev-item${doneCls}">
           ${dotsHtml}
           <span class="rev-topic-name">${escHtml(item.topic)}</span>
+          ${skipBtn2}
         </div>`;
       }
       html += `</div>`;
@@ -2788,6 +2906,15 @@ function renderRevScheduleView(dateStr) {
         setTL(subj, topic, val);
         completeRevItem(id, ds);
         triggerConfetti(dot);
+        renderRevScheduleView(viewDate);
+        renderHomeRevList();
+      });
+    });
+
+    // Wire skip buttons on tasks page
+    el.querySelectorAll(".rev-skip-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        skipRevItem(btn.dataset.skipId, btn.dataset.skipDate);
         renderRevScheduleView(viewDate);
         renderHomeRevList();
       });
@@ -2911,6 +3038,80 @@ function renderHome() {
   pillsEl.innerHTML = todaySubjects.length
     ? todaySubjects.map(s => `<span class="pill">${escHtml(s)}</span>`).join("")
     : '<span style="font-size:13px;font-weight:300;color:var(--text-tertiary)">Rest day</span>';
+
+  // Streak + weekly progress
+  const progressEl = document.getElementById("homeProgressRow");
+  if (progressEl) {
+    // Calculate streak: consecutive days with at least 1 diary entry, working backwards from today
+    let streak = 0;
+    const checkDate = new Date();
+    checkDate.setHours(0, 0, 0, 0);
+    const diaryDates = new Set(state.diary.map(e => e.date));
+    // Also count today if there's a diary entry OR if revision items are done today
+    const todayStr2 = getTodayStr();
+    const todayItems = state.revSchedule[todayStr2] || [];
+    const todayHasDone = todayItems.some(i => i.status === "done");
+    const todayHasDiary = diaryDates.has(todayStr2);
+
+    if (todayHasDone || todayHasDiary) streak = 1;
+    // Go backwards
+    for (let back = 1; back <= 365; back++) {
+      const d = new Date(checkDate);
+      d.setDate(d.getDate() - back);
+      const ds = d.toISOString().slice(0, 10);
+      // Count a day if there's a diary entry OR completed revision items
+      const pastItems = state.revSchedule[ds] || [];
+      const pastHasDone = pastItems.some(i => i.status === "done");
+      if (diaryDates.has(ds) || pastHasDone) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    // Weekly topics completed (last 7 days)
+    let weeklyDone = 0;
+    for (let back = 0; back < 7; back++) {
+      const ds = getDateStr(-back);
+      const dayItems = state.revSchedule[ds] || [];
+      weeklyDone += dayItems.filter(i => i.status === "done").length;
+    }
+
+    // Weekly study hours (last 7 days from diary)
+    let weeklyHours = 0;
+    for (let back = 0; back < 7; back++) {
+      const d2 = new Date();
+      d2.setDate(d2.getDate() - back);
+      const ds = d2.toISOString().slice(0, 10);
+      for (const e of state.diary) {
+        if (e.date === ds) weeklyHours += e.hours;
+      }
+    }
+
+    progressEl.innerHTML = `
+      <div class="progress-stat">
+        <span class="progress-stat-icon">🔥</span>
+        <div class="progress-stat-detail">
+          <span class="progress-stat-value">${streak}</span>
+          <span class="progress-stat-label">day streak</span>
+        </div>
+      </div>
+      <div class="progress-stat">
+        <span class="progress-stat-icon">✓</span>
+        <div class="progress-stat-detail">
+          <span class="progress-stat-value">${weeklyDone}</span>
+          <span class="progress-stat-label">topics this week</span>
+        </div>
+      </div>
+      <div class="progress-stat">
+        <span class="progress-stat-icon">◷</span>
+        <div class="progress-stat-detail">
+          <span class="progress-stat-value">${weeklyHours.toFixed(1)}h</span>
+          <span class="progress-stat-label">studied this week</span>
+        </div>
+      </div>
+    `;
+  }
 
   // Subject stats grid
   const grid = document.getElementById("homeStatsGrid");
@@ -3348,6 +3549,45 @@ function showSaved() {
   const ts = now.toTimeString().slice(0, 8);
   document.getElementById("tlSaved").textContent = "Last saved " + ts;
 }
+
+// Topic search filter
+document.getElementById("tlSearch").addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase().trim();
+  const rows = document.querySelectorAll("#tlTopics .tl-topic-row");
+  const sections = document.querySelectorAll("#tlTopics .tl-section-header");
+
+  if (!query) {
+    rows.forEach(r => r.classList.remove("search-hidden"));
+    sections.forEach(s => s.classList.remove("search-hidden"));
+    return;
+  }
+
+  // Track which sections have visible topics
+  const sectionVisibility = {};
+
+  rows.forEach(row => {
+    const name = row.querySelector(".tl-topic-name");
+    if (!name) return;
+    const text = name.textContent.toLowerCase();
+    const match = text.includes(query);
+    row.classList.toggle("search-hidden", !match);
+
+    // Find parent section index
+    let prev = row.previousElementSibling;
+    while (prev && !prev.classList.contains("tl-section-header")) {
+      prev = prev.previousElementSibling;
+    }
+    if (prev && match) {
+      sectionVisibility[prev.querySelector(".tl-section-name")?.textContent] = true;
+    }
+  });
+
+  // Hide sections that have no visible topics
+  sections.forEach(sec => {
+    const name = sec.querySelector(".tl-section-name")?.textContent;
+    sec.classList.toggle("search-hidden", !sectionVisibility[name]);
+  });
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    PAGE 3: PAST PAPERS
