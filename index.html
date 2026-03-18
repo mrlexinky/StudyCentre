@@ -1511,14 +1511,10 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       <h2>Tasks</h2>
 
       <!-- 1. Add a task form -->
-      <div class="card">
-        <h3>Add a task</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Task</label>
-            <input type="text" id="todoInput" placeholder="e.g., Review quantum mechanics">
-          </div>
-          <button class="btn" id="btnAddTodo" style="align-self: flex-end;">Add</button>
+      <div class="card" style="padding: calc(var(--spacing)*2) calc(var(--spacing)*3);">
+        <div style="display:flex;gap:calc(var(--spacing)*1.5);align-items:center;">
+          <input type="text" id="todoInput" placeholder="Add a task…" style="flex:1;margin:0;">
+          <button class="btn" id="btnAddTodo" style="flex-shrink:0;white-space:nowrap;">Add</button>
         </div>
       </div>
 
@@ -2507,14 +2503,12 @@ function generateSchedule(dateStr) {
   const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
   // Collect carried-forward items from yesterday
+  // Only carry if subject is scheduled today — never bleed across timetable days
   const carried = [];
   const yesterdayItems = state.revSchedule[yesterdayStr] || [];
   for (const item of yesterdayItems) {
     if (item.status === "done") continue; // done items don't carry
-    // Red always carries; amber/green only if subject scheduled today
-    if (item.tl === "r") {
-      carried.push({ ...item, overdue: true, scheduledDate: dateStr });
-    } else if (todaySubjects.includes(item.subject)) {
+    if (todaySubjects.includes(item.subject)) {
       carried.push({ ...item, overdue: true, scheduledDate: dateStr });
     }
   }
@@ -2663,21 +2657,39 @@ function renderHomeRevList() {
   let html = `<div class="text-sm text-secondary" style="margin-bottom:8px;">${done} done / ${total} total</div>`;
 
   for (const [subj, sitems] of Object.entries(bySubject)) {
-    const cls = getSubjectClass(subj);
     html += `<div class="rev-subject-group">
       <div class="rev-subject-label">${escHtml(subj)}</div>`;
     for (const item of sitems) {
-      const doneCls = item.status === "done" ? " done" : item.status === "skipped" ? " skipped" : "";
-      html += `<div class="rev-item${doneCls}">
+      const isDone = item.status === "done";
+      const doneCls = isDone ? " done" : "";
+      const tickHtml = isDone
+        ? `<span class="todo-checkbox checked" style="width:18px;height:18px;font-size:11px;flex-shrink:0;">✓</span>`
+        : `<button class="todo-checkbox" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" title="Mark done" style="width:18px;height:18px;border-radius:3px;flex-shrink:0;font-family:inherit;font-size:11px;"></button>`;
+      html += `<div class="rev-item${doneCls}" style="gap:8px;">
+        ${tickHtml}
         <span class="rev-tl-dot" style="background:${tlDotColor(item.tl)};"></span>
         <span class="rev-topic-name">${escHtml(item.topic)}</span>
-        <span class="badge ${cls}" style="font-size:9px;padding:1px 5px;">${escHtml(subj.split(" ")[0])}</span>
+        ${item.overdue ? `<span class="overdue-badge">overdue</span>` : ""}
       </div>`;
     }
     html += `</div>`;
   }
 
   el.innerHTML = html;
+
+  // Wire tick buttons
+  el.querySelectorAll("button[data-home-rev-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.homeRevId;
+      const ds = btn.dataset.homeRevDate;
+      const item = (state.revSchedule[ds] || []).find(i => i.id === id);
+      if (!item) return;
+      completeRevItem(id, ds);
+      if (item.tl === "r" || item.tl === "a") triggerConfetti(btn);
+      renderHomeRevList();
+      renderRevScheduleView(viewDate);
+    });
+  });
 }
 
 // btnGenRevHome removed — schedule is auto-generated on app load
@@ -2746,17 +2758,13 @@ function renderRevScheduleView(dateStr) {
         <div class="rev-subject-label">${escHtml(subj)}</div>`;
       for (const item of sitems) {
         const isDone = item.status === "done";
-        const isSkipped = item.status === "skipped";
-        const doneCls = isDone ? " done" : isSkipped ? " skipped" : "";
+        const doneCls = isDone ? " done" : "";
         const overdueBadge = item.overdue ? `<span class="overdue-badge">overdue</span>` : "";
         let actionsHtml = "";
-        if (!isDone && !isSkipped) {
+        if (!isDone) {
           actionsHtml = `<span class="rev-item-actions">
             <button class="rev-action-btn done-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" title="Mark done">&#10003;</button>
-            <button class="rev-action-btn skip-btn" data-id="${escHtml(item.id)}" data-date="${escHtml(dateStr)}" title="Skip">&#8250;</button>
           </span>`;
-        } else if (isSkipped) {
-          actionsHtml = `<span class="text-sm" style="color:var(--text-tertiary);font-size:11px;">(carried forward)</span>`;
         }
         html += `<div class="rev-item${doneCls}">
           <span class="rev-tl-dot" style="background:${tlDotColor(item.tl)};"></span>
@@ -2770,7 +2778,7 @@ function renderRevScheduleView(dateStr) {
     html += `</div>`;
     el.innerHTML = html;
 
-    // Wire up done/skip buttons
+    // Wire up done buttons
     el.querySelectorAll(".done-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.dataset.id;
@@ -2783,13 +2791,7 @@ function renderRevScheduleView(dateStr) {
       });
     });
 
-    el.querySelectorAll(".skip-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        skipRevItem(btn.dataset.id, btn.dataset.date);
-        renderRevScheduleView(viewDate);
-        renderHomeRevList();
-      });
-    });
+    // Skip button removed — incomplete items carry forward automatically overnight
 
     const regenBtn = document.getElementById("btnRegenDay");
     if (regenBtn) {
@@ -3664,22 +3666,40 @@ function renderHomePreview() {
 function renderHomeTodoPreview() {
   const el = document.getElementById("homeTodoPreview");
   if (!el) return;
-  const todos = (state.todos || []).filter(t => !t.completed);
-  if (!todos.length) {
+  const todos = state.todos || [];
+  const incomplete = todos.filter(t => !t.completed);
+  if (!incomplete.length) {
     el.innerHTML = '<div class="text-sm text-secondary" style="padding:4px 0;">No tasks. All clear!</div>';
     return;
   }
-  const shown = todos.slice(0, 3);
-  let html = shown.map(t =>
-    `<div class="rev-item" style="padding:5px 0;">
-      <span class="todo-preview-check"></span>
-      <span class="rev-topic-name" style="font-size:13px;">${escHtml(t.text)}</span>
-    </div>`
-  ).join("");
-  if (todos.length > 3) {
-    html += `<div class="text-sm text-secondary" style="padding:4px 0;">+${todos.length - 3} more</div>`;
+  const shown = incomplete.slice(0, 3);
+  let html = shown.map(t => {
+    const realIdx = todos.indexOf(t);
+    return `<div class="todo-item" style="padding:6px 0;" data-todo-idx="${realIdx}">
+      <div class="todo-checkbox" data-home-todo="${realIdx}" title="Mark complete"></div>
+      <div class="todo-text">${escHtml(t.text)}</div>
+    </div>`;
+  }).join("");
+  if (incomplete.length > 3) {
+    html += `<div class="text-sm text-secondary" style="padding:4px 0;">+${incomplete.length - 3} more</div>`;
   }
   el.innerHTML = html;
+
+  // Wire up tick handlers
+  el.querySelectorAll(".todo-checkbox[data-home-todo]").forEach(cb => {
+    cb.addEventListener("click", () => {
+      const idx = parseInt(cb.dataset.homeTodo);
+      if (isNaN(idx) || !state.todos[idx]) return;
+      state.todos[idx].completed = true;
+      triggerConfetti(cb);
+      setTimeout(() => {
+        state.todos.splice(idx, 1);
+        saveState();
+        renderHomeTodoPreview();
+        renderTodos();
+      }, 600);
+    });
+  });
 }
 
 function setupTodoListeners() {
