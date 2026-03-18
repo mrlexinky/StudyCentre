@@ -1182,6 +1182,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
      BOTTOM TAB BAR
      ═══════════════════════════════════════════════════════════════ -->
 <nav class="tab-bar" id="tabBar">
+  <!-- home -->
   <a class="tab-item" href="#home" data-route="home">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
@@ -1189,6 +1190,16 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     </svg>
     <span class="tab-label">Home</span>
   </a>
+  <!-- tasks -->
+  <a class="tab-item" href="#todos" data-route="todos">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <rect x="3" y="2" width="14" height="14" rx="1"/>
+      <path d="M6 7l2 2 4-5"/>
+      <path d="M6 13h8"/>
+    </svg>
+    <span class="tab-label">Tasks</span>
+  </a>
+  <!-- topics -->
   <a class="tab-item" href="#traffic" data-route="traffic">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
       <rect x="6" y="1" width="8" height="18" rx="2"/>
@@ -1198,6 +1209,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     </svg>
     <span class="tab-label">Topics</span>
   </a>
+  <!-- papers -->
   <a class="tab-item" href="#papers" data-route="papers">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 2h7l4 4v12a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z"/>
@@ -1208,6 +1220,17 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     </svg>
     <span class="tab-label">Papers</span>
   </a>
+  <!-- links -->
+  <a class="tab-item" href="#resources" data-route="resources">
+    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v2H3V5z"/>
+      <path d="M3 7v9a2 2 0 002 2h10a2 2 0 002-2V7"/>
+      <line x1="8" y1="11" x2="12" y2="11"/>
+      <line x1="8" y1="14" x2="12" y2="14"/>
+    </svg>
+    <span class="tab-label">Links</span>
+  </a>
+  <!-- diary -->
   <a class="tab-item" href="#diary" data-route="diary">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <rect x="4" y="2" width="12" height="16" rx="1.5"/>
@@ -1218,6 +1241,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     </svg>
     <span class="tab-label">Diary</span>
   </a>
+  <!-- countdown -->
   <a class="tab-item" href="#countdown" data-route="countdown">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
       <circle cx="10" cy="11" r="7"/>
@@ -1226,23 +1250,6 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       <path d="M10 1.5V3"/>
     </svg>
     <span class="tab-label">Countdown</span>
-  </a>
-  <a class="tab-item" href="#todos" data-route="todos">
-    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
-      <rect x="3" y="2" width="14" height="14" rx="1"/>
-      <path d="M6 7l2 2 4-5"/>
-      <path d="M6 13h8"/>
-    </svg>
-    <span class="tab-label">Tasks</span>
-  </a>
-  <a class="tab-item" href="#resources" data-route="resources">
-    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v2H3V5z"/>
-      <path d="M3 7v9a2 2 0 002 2h10a2 2 0 002-2V7"/>
-      <line x1="8" y1="11" x2="12" y2="11"/>
-      <line x1="8" y1="14" x2="12" y2="14"/>
-    </svg>
-    <span class="tab-label">Links</span>
   </a>
 </nav>
 
@@ -1304,11 +1311,6 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     <h2>Traffic Lights</h2>
     <div class="tl-tabs" id="tlTabs"></div>
     <div class="tl-summary" id="tlSummary"></div>
-    <div class="tl-bulk" id="tlBulk">
-      <button class="btn btn-sm" data-bulk="r">Mark all Red</button>
-      <button class="btn btn-sm" data-bulk="a">Mark all Amber</button>
-      <button class="btn btn-sm" data-bulk="g">Mark all Green</button>
-    </div>
     <div id="tlTopics"></div>
     <div class="tl-saved" id="tlSaved"></div>
   </div><!-- /container -->
@@ -1574,22 +1576,26 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       <div class="resource-section-title">Textbooks</div>
 
       <div class="resource-card">
-        <div class="resource-card-header">
-          <span class="resource-link-icon subj-maths">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="2" width="12" height="16" rx="1"/><line x1="7" y1="7" x2="11" y2="7"/><line x1="7" y1="10" x2="11" y2="10"/></svg>
-          </span>
-          <div>
-            <div class="resource-card-title">Cambridge Go — Digital Textbooks</div>
-            <div class="resource-card-desc">Your Cambridge digital textbook library</div>
-          </div>
-        </div>
         <div class="resource-link-list">
           <a class="resource-link" href="https://www.cambridge.org/go/ereader/read/9781316644584/?groupId=0&bookid=658&root=anon#book/658" target="_blank" rel="noopener">
-            <span class="resource-link-name">Cambridge A-Level Mathematics Textbook</span>
+            <span class="resource-link-icon subj-maths">
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="2" width="12" height="16" rx="1"/><line x1="7" y1="7" x2="11" y2="7"/><line x1="7" y1="10" x2="11" y2="10"/></svg>
+            </span>
+            <span class="resource-link-name">Mathematics — Cambridge Go Textbook</span>
             <span class="resource-link-arrow">↗</span>
           </a>
-          <a class="resource-link" href="https://www.cambridge.org/go" target="_blank" rel="noopener">
-            <span class="resource-link-name">Cambridge Go Library (all books)</span>
+          <a class="resource-link" href="https://www.cambridge.org/go/ereader/read/9781316644584/?groupId=0&bookid=658&root=anon#book/658" target="_blank" rel="noopener">
+            <span class="resource-link-icon subj-fm">
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="2" width="12" height="16" rx="1"/><line x1="7" y1="7" x2="11" y2="7"/><line x1="7" y1="10" x2="11" y2="10"/></svg>
+            </span>
+            <span class="resource-link-name">Further Maths — Cambridge Go Textbook</span>
+            <span class="resource-link-arrow">↗</span>
+          </a>
+          <a class="resource-link" href="https://www.kerboodle.com/app/courses/45149" target="_blank" rel="noopener">
+            <span class="resource-link-icon subj-phys">
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="2" width="12" height="16" rx="1"/><line x1="7" y1="7" x2="11" y2="7"/><line x1="7" y1="10" x2="11" y2="10"/></svg>
+            </span>
+            <span class="resource-link-name">Physics — Kerboodle Textbook</span>
             <span class="resource-link-arrow">↗</span>
           </a>
         </div>
@@ -2900,20 +2906,7 @@ function renderTLContent() {
   });
 }
 
-// Bulk buttons
-document.getElementById("tlBulk").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-bulk]");
-  if (!btn) return;
-  const val = btn.dataset.bulk;
-  for (const sec in TOPICS[tlActiveSubject]) {
-    for (const t of TOPICS[tlActiveSubject][sec]) {
-      state.tl[tlKey(tlActiveSubject, t)] = val;
-    }
-  }
-  saveState();
-  renderTLContent();
-  showSaved();
-});
+// Section-level bulk buttons are rendered inside renderTLContent() and handled there.
 
 function showSaved() {
   const now = new Date();
