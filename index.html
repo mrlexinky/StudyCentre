@@ -164,6 +164,27 @@ body {
   padding: calc(var(--spacing) * 3);
   margin-bottom: calc(var(--spacing) * 2);
   box-shadow: var(--card-shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72,71,63,0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+}
+
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72,71,63,0.12);
+}
+@media (prefers-color-scheme: dark) {
+  .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1247,6 +1268,14 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   font-size: 10px; font-weight: 400; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--text-tertiary);
   margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.rev-section-badge {
+  font-size: 9px; font-weight: 400; letter-spacing: 0.04em;
+  background: var(--bg-page); border: 1px solid var(--border);
+  border-radius: 3px; padding: 1px 5px;
+  color: var(--text-secondary); text-transform: uppercase;
 }
 
 .rev-item {
@@ -1397,19 +1426,20 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
           <div class="hero-meta-sub" id="homeCountdownDays"></div>
         </div>
         <div class="hero-meta-block">
-          <div class="hero-meta-label">Today's subjects</div>
-          <div class="subject-pills" id="homePills" style="margin-top:4px;"></div>
+          <div class="hero-meta-label">Streak</div>
+          <div class="hero-meta-value" id="homeStreak">—</div>
+          <div class="hero-meta-sub" id="homeStreakSub"></div>
+        </div>
+        <div class="hero-meta-block">
+          <div class="hero-meta-label">This week</div>
+          <div class="hero-meta-value" id="homeWeekHours">—</div>
+          <div class="hero-meta-sub" id="homeWeekHoursSub"></div>
         </div>
       </div>
     </div>
 
-    <!-- Streak + weekly progress -->
-    <div class="container" style="padding-top: calc(var(--spacing)*2); padding-bottom: 0;">
-      <div class="home-progress-row" id="homeProgressRow"></div>
-    </div>
-
     <!-- Subject stats grid -->
-    <div class="container" style="padding-top: calc(var(--spacing)*2); padding-bottom: 0;">
+    <div class="container" style="padding-top: calc(var(--spacing)*3); padding-bottom: 0;">
       <div class="stats-grid" id="homeStatsGrid"></div>
 
       <!-- Tools -->
@@ -2560,7 +2590,6 @@ function daysBetween(d1Str, d2Str) {
 }
 
 const MAX_PER_SUBJECT = 5;
-const MAX_PER_DAY = 15;
 
 function getDefaultInterval(tl) {
   if (tl === "r") return 1;
@@ -2576,23 +2605,39 @@ function isTopicDue(subject, topic, dateStr) {
   return daysSince >= sr.interval;
 }
 
-/* Priority score: higher = more urgent.
-   Exam proximity gives a massive boost so subjects with near exams
-   get scheduled first. Red topics trump amber which trump green.
-   Within a colour, topics with the longest time since last review rank higher. */
-function topicPriority(subject, topic, tl, daysSince, dateStr) {
-  // Exam proximity: 0–100 bonus (100 = exam tomorrow, 0 = 90+ days away)
-  const ne = nextExam(subject);
-  const daysToExam = ne ? Math.max(0, daysUntil(ne.date)) : 90;
-  const examBoost = Math.max(0, 100 - daysToExam);
-
-  // TL urgency: red=300, amber=200, green=100
+/* Single-topic priority score for ranking within a section */
+function topicPriority(subject, topic, tl, daysSince) {
   const tlWeight = tl === "r" ? 300 : tl === "a" ? 200 : 100;
-
-  // Overdue bonus: how many days past due (capped at 50)
   const overdueBonus = Math.min(daysSince, 50);
+  return tlWeight + overdueBonus;
+}
 
-  return examBoost + tlWeight + overdueBonus;
+/* Section urgency: scored as the sum of the top-5 topic priorities in that section.
+   Sections with more red/overdue topics bubble to the top.
+   Also boosts sections whose topics have never been reviewed (daysSince = 9999)
+   so fresh subjects get visited before already-studied ones. */
+function sectionUrgency(subject, section, dateStr) {
+  const topics = TOPICS[subject][section] || [];
+  const scores = [];
+  for (const topic of topics) {
+    if (!isTopicDue(subject, topic, dateStr)) continue;
+    const tl = getTL(subject, topic);
+    const sr = state.spacedRep[subject + "|" + topic];
+    const daysSince = sr && sr.lastReviewed ? daysBetween(sr.lastReviewed, dateStr) : 9999;
+    scores.push(topicPriority(subject, topic, tl, daysSince));
+  }
+  if (!scores.length) return -1; // no due topics → skip section
+  scores.sort((a, b) => b - a);
+  // Sum of top-5 scores
+  return scores.slice(0, 5).reduce((a, b) => a + b, 0);
+}
+
+/* Returns the section name (key) for a given topic under a subject */
+function getSectionForTopic(subject, topic) {
+  for (const sec in TOPICS[subject]) {
+    if (TOPICS[subject][sec].includes(topic)) return sec;
+  }
+  return null;
 }
 
 function generateSchedule(dateStr) {
@@ -2606,53 +2651,62 @@ function generateSchedule(dateStr) {
     return [];
   }
 
-  // Deduplicate subjects (Sunday has all 4 — no duplication risk, but be safe)
   const uniqueSubjects = [...new Set(todaySubjects)];
-
-  // Calculate per-subject slot allocation.
-  // Total capped at MAX_PER_DAY, distributed proportionally to subject count,
-  // each subject capped at MAX_PER_SUBJECT.
-  const perSubject = Math.min(MAX_PER_SUBJECT, Math.floor(MAX_PER_DAY / uniqueSubjects.length));
-
-  // Collect all candidate items across subjects
-  const subjectItems = {};
+  const items = [];
 
   for (const subject of uniqueSubjects) {
-    const allT = allTopicsFlat(subject);
-    const candidates = [];
+    const sections = Object.keys(TOPICS[subject]);
 
-    for (const topic of allT) {
-      const key = subject + "|" + topic;
-      if (!isTopicDue(subject, topic, dateStr)) continue;
-      const tl = getTL(subject, topic);
-      const sr = state.spacedRep[key];
-      const daysSince = sr && sr.lastReviewed ? daysBetween(sr.lastReviewed, dateStr) : 9999;
-      const priority = topicPriority(subject, topic, tl, daysSince, dateStr);
-      candidates.push({ topic, tl, daysSince, priority });
+    // Score every section and pick the most urgent one
+    let bestSection = null;
+    let bestScore = -1;
+    for (const sec of sections) {
+      const score = sectionUrgency(subject, sec, dateStr);
+      if (score > bestScore) {
+        bestScore = score;
+        bestSection = sec;
+      }
     }
 
-    // Sort by priority descending
-    candidates.sort((a, b) => b.priority - a.priority);
+    if (!bestSection || bestScore < 0) continue; // nothing due
 
-    // Take up to perSubject items
-    subjectItems[subject] = candidates.slice(0, perSubject).map(c => ({
-      id: uid(),
-      subject,
-      topic: c.topic,
-      tl: c.tl,
-      status: "pending",
-      scheduledDate: dateStr
-    }));
+    // Rank all sections by urgency
+    const sectionOrder = sections
+      .map(sec => ({ sec, score: sectionUrgency(subject, sec, dateStr) }))
+      .filter(s => s.score >= 0)
+      .sort((a, b) => b.score - a.score);
+
+    // Fill up to MAX_PER_SUBJECT from the best section first; spill into next
+    // sections only if the primary is exhausted — keeping each day coherent.
+    const picked = [];
+    for (const { sec } of sectionOrder) {
+      if (picked.length >= MAX_PER_SUBJECT) break;
+      const dueInSection = (TOPICS[subject][sec] || [])
+        .filter(t => isTopicDue(subject, t, dateStr))
+        .map(t => {
+          const tl = getTL(subject, t);
+          const sr = state.spacedRep[subject + "|" + t];
+          const daysSince = sr && sr.lastReviewed ? daysBetween(sr.lastReviewed, dateStr) : 9999;
+          return { topic: t, tl, daysSince, priority: topicPriority(subject, t, tl, daysSince) };
+        })
+        .sort((a, b) => b.priority - a.priority);
+
+      const need = MAX_PER_SUBJECT - picked.length;
+      picked.push(...dueInSection.slice(0, need));
+    }
+
+    for (const c of picked) {
+      items.push({
+        id: uid(),
+        subject,
+        topic: c.topic,
+        tl: c.tl,
+        status: "pending",
+        scheduledDate: dateStr,
+        section: getSectionForTopic(subject, c.topic)
+      });
+    }
   }
-
-  // Flatten — guaranteed max MAX_PER_DAY
-  let items = [];
-  for (const subject of uniqueSubjects) {
-    items.push(...(subjectItems[subject] || []));
-  }
-
-  // Final safety cap
-  if (items.length > MAX_PER_DAY) items = items.slice(0, MAX_PER_DAY);
 
   state.revSchedule[dateStr] = items;
   saveState();
@@ -2756,13 +2810,17 @@ function renderHomeRevList() {
   let html = `<div class="text-sm text-secondary" style="margin-bottom:8px;">${done} / ${total} done</div>`;
 
   for (const [subj, sitems] of Object.entries(bySubject)) {
+    // Determine the primary section for this subject's items
+    const primarySection = sitems[0]?.section || getSectionForTopic(subj, sitems[0]?.topic) || "";
+    // Strip leading "A: " style prefix for display
+    const sectionDisplay = primarySection.replace(/^[A-Z0-9]+:\s*/, "");
+
     html += `<div class="rev-subject-group">
-      <div class="rev-subject-label">${escHtml(subj)}</div>`;
+      <div class="rev-subject-label">${escHtml(subj)}${sectionDisplay ? `<span class="rev-section-badge">${escHtml(sectionDisplay)}</span>` : ""}</div>`;
     for (const item of sitems) {
       const isDone = item.status === "done";
       const doneCls = isDone ? " done" : "";
       const currentTL = getTL(item.subject, item.topic);
-      // 3-dot TL selector matching the traffic light page
       const dotsHtml = isDone
         ? `<span class="rev-tl-dot-done" title="Done">✓</span>`
         : `<span class="rev-tl-dots">
@@ -2869,13 +2927,14 @@ function renderRevScheduleView(dateStr) {
     </div>`;
 
     for (const [subj, sitems] of Object.entries(bySubject)) {
+      const primarySection2 = sitems[0]?.section || getSectionForTopic(subj, sitems[0]?.topic) || "";
+      const sectionDisplay2 = primarySection2.replace(/^[A-Z0-9]+:\s*/, "");
       html += `<div class="rev-subject-group">
-        <div class="rev-subject-label">${escHtml(subj)}</div>`;
+        <div class="rev-subject-label">${escHtml(subj)}${sectionDisplay2 ? `<span class="rev-section-badge">${escHtml(sectionDisplay2)}</span>` : ""}</div>`;
       for (const item of sitems) {
         const isDone = item.status === "done";
         const doneCls = isDone ? " done" : "";
         const currentTL = getTL(item.subject, item.topic);
-        // 3-dot TL selector matching the traffic light page
         const dotsHtml = isDone
           ? `<span class="rev-tl-dot-done" title="Done">✓</span>`
           : `<span class="rev-tl-dots">
@@ -2960,9 +3019,11 @@ function renderRevScheduleView(dateStr) {
       if (aCount) summaryParts.push(`<span style="color:var(--amber-text);">${aCount} amber</span>`);
       if (gCount) summaryParts.push(`<span style="color:var(--green-text);">${gCount} green</span>`);
 
+      const fwdSection = sitems[0]?.section || getSectionForTopic(subj, sitems[0]?.topic) || "";
+      const fwdSectionDisplay = fwdSection.replace(/^[A-Z0-9]+:\s*/, "");
       html += `<div class="rev-subject-group">
         <div class="rev-subject-label" style="display:flex;justify-content:space-between;">
-          <span>${escHtml(subj)}</span>
+          <span>${escHtml(subj)}${fwdSectionDisplay ? `<span class="rev-section-badge" style="margin-left:6px;">${escHtml(fwdSectionDisplay)}</span>` : ""}</span>
           <span>${summaryParts.join(" &bull; ")}</span>
         </div>`;
 
@@ -3032,85 +3093,36 @@ function renderHome() {
     daysEl.textContent = "";
   }
 
-  // Today's pills
   const todaySubjects = TIMETABLE[now.getDay()] || [];
-  const pillsEl = document.getElementById("homePills");
-  pillsEl.innerHTML = todaySubjects.length
-    ? todaySubjects.map(s => `<span class="pill">${escHtml(s)}</span>`).join("")
-    : '<span style="font-size:13px;font-weight:300;color:var(--text-tertiary)">Rest day</span>';
 
-  // Streak + weekly progress
-  const progressEl = document.getElementById("homeProgressRow");
-  if (progressEl) {
-    // Calculate streak: consecutive days with at least 1 diary entry, working backwards from today
-    let streak = 0;
-    const checkDate = new Date();
-    checkDate.setHours(0, 0, 0, 0);
+  // Streak + hours into hero
+  {
     const diaryDates = new Set(state.diary.map(e => e.date));
-    // Also count today if there's a diary entry OR if revision items are done today
     const todayStr2 = getTodayStr();
     const todayItems = state.revSchedule[todayStr2] || [];
     const todayHasDone = todayItems.some(i => i.status === "done");
-    const todayHasDiary = diaryDates.has(todayStr2);
-
-    if (todayHasDone || todayHasDiary) streak = 1;
-    // Go backwards
+    let streak = (todayHasDone || diaryDates.has(todayStr2)) ? 1 : 0;
     for (let back = 1; back <= 365; back++) {
-      const d = new Date(checkDate);
-      d.setDate(d.getDate() - back);
-      const ds = d.toISOString().slice(0, 10);
-      // Count a day if there's a diary entry OR completed revision items
-      const pastItems = state.revSchedule[ds] || [];
-      const pastHasDone = pastItems.some(i => i.status === "done");
-      if (diaryDates.has(ds) || pastHasDone) {
-        streak++;
-      } else {
-        break;
-      }
+      const d2 = new Date(); d2.setDate(d2.getDate() - back);
+      const ds = d2.toISOString().slice(0, 10);
+      const past = state.revSchedule[ds] || [];
+      if (diaryDates.has(ds) || past.some(i => i.status === "done")) streak++;
+      else break;
     }
-
-    // Weekly topics completed (last 7 days)
-    let weeklyDone = 0;
-    for (let back = 0; back < 7; back++) {
-      const ds = getDateStr(-back);
-      const dayItems = state.revSchedule[ds] || [];
-      weeklyDone += dayItems.filter(i => i.status === "done").length;
-    }
-
-    // Weekly study hours (last 7 days from diary)
     let weeklyHours = 0;
     for (let back = 0; back < 7; back++) {
-      const d2 = new Date();
-      d2.setDate(d2.getDate() - back);
+      const d2 = new Date(); d2.setDate(d2.getDate() - back);
       const ds = d2.toISOString().slice(0, 10);
-      for (const e of state.diary) {
-        if (e.date === ds) weeklyHours += e.hours;
-      }
+      for (const e of state.diary) { if (e.date === ds) weeklyHours += e.hours; }
     }
-
-    progressEl.innerHTML = `
-      <div class="progress-stat">
-        <span class="progress-stat-icon">🔥</span>
-        <div class="progress-stat-detail">
-          <span class="progress-stat-value">${streak}</span>
-          <span class="progress-stat-label">day streak</span>
-        </div>
-      </div>
-      <div class="progress-stat">
-        <span class="progress-stat-icon">✓</span>
-        <div class="progress-stat-detail">
-          <span class="progress-stat-value">${weeklyDone}</span>
-          <span class="progress-stat-label">topics this week</span>
-        </div>
-      </div>
-      <div class="progress-stat">
-        <span class="progress-stat-icon">◷</span>
-        <div class="progress-stat-detail">
-          <span class="progress-stat-value">${weeklyHours.toFixed(1)}h</span>
-          <span class="progress-stat-label">studied this week</span>
-        </div>
-      </div>
-    `;
+    const streakEl = document.getElementById("homeStreak");
+    const streakSubEl = document.getElementById("homeStreakSub");
+    const hoursEl = document.getElementById("homeWeekHours");
+    const hoursSubEl = document.getElementById("homeWeekHoursSub");
+    if (streakEl) { streakEl.textContent = streak; streakEl.className = "hero-meta-value" + (streak >= 7 ? " urgent" : ""); }
+    if (streakSubEl) streakSubEl.textContent = streak === 1 ? "day" : "days";
+    if (hoursEl) hoursEl.textContent = weeklyHours.toFixed(1) + "h";
+    if (hoursSubEl) hoursSubEl.textContent = "studied";
   }
 
   // Subject stats grid
@@ -3129,8 +3141,8 @@ function renderHome() {
     const avgPct = papers.length ? Math.round(papers.reduce((s,p)=>s+p.pct,0)/papers.length) : null;
     const isToday = todaySubjects.includes(subj);
 
-    gridHtml += `<div class="stat-card" style="${isToday ? "border-color:var(--border-emphasis);" : ""}">
-      <div class="stat-card-label">${isToday ? "&#9656; Today" : "&nbsp;"}</div>
+    gridHtml += `<div class="stat-card" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
+      <div class="stat-card-label">${isToday ? "Today" : "&nbsp;"}</div>
       <div class="stat-card-name">${escHtml(shortNames[subj] || subj)}</div>
       <div class="stat-mini-bar">
         <div class="stat-mini-bar-seg" style="width:${pR}%;background:var(--red-dot)"></div>
@@ -3550,7 +3562,7 @@ function showSaved() {
   document.getElementById("tlSaved").textContent = "Last saved " + ts;
 }
 
-// Topic search filter
+// Topic search filter — matches individual topic names AND section titles
 document.getElementById("tlSearch").addEventListener("input", (e) => {
   const query = e.target.value.toLowerCase().trim();
   const rows = document.querySelectorAll("#tlTopics .tl-topic-row");
@@ -3562,30 +3574,39 @@ document.getElementById("tlSearch").addEventListener("input", (e) => {
     return;
   }
 
-  // Track which sections have visible topics
-  const sectionVisibility = {};
+  // First pass: determine which sections match by title
+  const sectionMatchByTitle = new Set();
+  sections.forEach(sec => {
+    const name = sec.querySelector(".tl-section-name")?.textContent.toLowerCase() || "";
+    if (name.includes(query)) sectionMatchByTitle.add(sec);
+  });
+
+  // Track sections that have matching topics
+  const sectionHasMatchingTopic = new Set();
 
   rows.forEach(row => {
     const name = row.querySelector(".tl-topic-name");
     if (!name) return;
-    const text = name.textContent.toLowerCase();
-    const match = text.includes(query);
-    row.classList.toggle("search-hidden", !match);
+    const topicText = name.textContent.toLowerCase();
 
-    // Find parent section index
-    let prev = row.previousElementSibling;
-    while (prev && !prev.classList.contains("tl-section-header")) {
-      prev = prev.previousElementSibling;
+    // Find the section header this row belongs to
+    let prevSec = row.previousElementSibling;
+    while (prevSec && !prevSec.classList.contains("tl-section-header")) {
+      prevSec = prevSec.previousElementSibling;
     }
-    if (prev && match) {
-      sectionVisibility[prev.querySelector(".tl-section-name")?.textContent] = true;
-    }
+
+    // Topic matches either its own text or its section title
+    const sectionTitleMatch = prevSec && sectionMatchByTitle.has(prevSec);
+    const topicMatch = topicText.includes(query) || sectionTitleMatch;
+
+    row.classList.toggle("search-hidden", !topicMatch);
+    if (topicMatch && prevSec) sectionHasMatchingTopic.add(prevSec);
   });
 
-  // Hide sections that have no visible topics
+  // Show/hide sections
   sections.forEach(sec => {
-    const name = sec.querySelector(".tl-section-name")?.textContent;
-    sec.classList.toggle("search-hidden", !sectionVisibility[name]);
+    const visible = sectionMatchByTitle.has(sec) || sectionHasMatchingTopic.has(sec);
+    sec.classList.toggle("search-hidden", !visible);
   });
 });
 
