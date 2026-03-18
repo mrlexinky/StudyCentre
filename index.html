@@ -1332,23 +1332,28 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 
       <!-- Tools -->
       <div class="home-tools">
-        <div class="card" id="homeRevCard">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <h3 style="margin-bottom:0;">Today's Revision Plan</h3>
-            <button class="btn btn-sm" id="btnGenRevHome">Generate</button>
-          </div>
+
+        <!-- Todo preview (max 3) -->
+        <div class="card" id="homeTodoPreviewCard">
+          <h3>Tasks</h3>
+          <div id="homeTodoPreview"></div>
+        </div>
+
+        <!-- Revision plan (auto-generated) -->
+        <div class="card mt2" id="homeRevCard">
+          <h3>Today's Revision Plan</h3>
           <div id="homeRevList"></div>
         </div>
 
         <div class="card mt2">
-          <h3>Today's Itinerary Prompt</h3>
-          <p class="text-sm text-secondary mb2">Generate a revision plan to paste into Claude — includes traffic light status, past paper results, and exam timing.</p>
+          <h3>Today's Prompt</h3>
+          <p class="text-sm text-secondary mb2">Generates a focused prompt based on today's revision plan — paste into Claude.</p>
           <div class="form-group mb2">
             <label>Anything specific to include today?</label>
-            <textarea id="itineraryNotes" rows="2" placeholder="e.g. focus on integration by parts, struggling with complex numbers, have 2 hours only, want to do a timed practice paper…"></textarea>
+            <textarea id="itineraryNotes" rows="2" placeholder="e.g. struggling with complex numbers, only 2 hours available…"></textarea>
           </div>
-          <button class="btn mb2" id="btnGenItinerary">Generate today's itinerary</button>
-          <textarea class="itinerary-area" id="itineraryOutput" readonly placeholder="Click the button above to generate your itinerary prompt..."></textarea>
+          <button class="btn mb2" id="btnGenItinerary">Today's Prompt</button>
+          <textarea class="itinerary-area" id="itineraryOutput" readonly placeholder="Click the button above to generate your prompt..."></textarea>
           <button class="btn btn-sm mt1" id="btnCopyItinerary" style="display:none;">Copy to clipboard</button>
         </div>
 
@@ -1505,14 +1510,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
     <div class="container">
       <h2>Tasks</h2>
 
-      <div class="day-nav" id="dayNav">
-        <button class="btn btn-sm" id="dayNavPrev">&#9664;</button>
-        <span id="dayNavLabel" class="day-nav-label"></span>
-        <button class="btn btn-sm" id="dayNavNext">&#9654;</button>
-      </div>
-      <div id="revScheduleView"></div>
-      <div class="section-divider" style="margin:16px 0;border-top:1px solid var(--border);"></div>
-
+      <!-- 1. Add a task form -->
       <div class="card">
         <h3>Add a task</h3>
         <div class="form-row">
@@ -1524,10 +1522,21 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
         </div>
       </div>
 
+      <!-- 2. Manual to-do list -->
       <div class="card mt2">
         <h3>To-do list</h3>
         <div id="todoList"></div>
       </div>
+
+      <!-- 3. Revision schedule with day navigation -->
+      <div class="section-divider" style="margin:20px 0 16px;border-top:1px solid var(--border);"></div>
+      <div class="day-nav" id="dayNav">
+        <button class="btn btn-sm" id="dayNavPrev">&#9664;</button>
+        <span id="dayNavLabel" class="day-nav-label"></span>
+        <button class="btn btn-sm" id="dayNavNext">&#9654;</button>
+      </div>
+      <div id="revScheduleView"></div>
+
     </div>
   </div><!-- /page-todos -->
 
@@ -2537,7 +2546,11 @@ function generateSchedule(dateStr) {
     ambers.sort((a, b) => b.daysSince - a.daysSince);
     greens.sort((a, b) => b.daysSince - a.daysSince);
 
-    // Take limits
+    // Count overdue items already in list for this subject
+    const overdueForSubj = carried.filter(i => i.subject === subject).length;
+    const slotsLeft = Math.max(0, 5 - overdueForSubj);
+
+    // Fill remaining slots: red first, then amber, then green (total cap 5 per subject)
     const take = (arr, limit, tl) => arr.slice(0, limit).map(x => ({
       id: uid(),
       subject,
@@ -2548,9 +2561,12 @@ function generateSchedule(dateStr) {
       overdue: false
     }));
 
-    newItems.push(...take(reds, 5, "r"));
-    newItems.push(...take(ambers, 3, "a"));
-    newItems.push(...take(greens, 1, "g"));
+    let remaining = slotsLeft;
+    const redItems  = take(reds,   Math.min(remaining, reds.length),   "r"); remaining -= redItems.length;
+    const ambItems  = take(ambers, Math.min(remaining, ambers.length), "a"); remaining -= ambItems.length;
+    const grnItems  = take(greens, Math.min(remaining, greens.length), "g");
+
+    newItems.push(...redItems, ...ambItems, ...grnItems);
   }
 
   const items = [...carried, ...newItems];
@@ -2628,7 +2644,7 @@ function renderHomeRevList() {
   const items = state.revSchedule[todayStr];
 
   if (!items || items.length === 0) {
-    el.innerHTML = '<div class="text-sm text-secondary" style="padding:8px 0;">Click Generate to build today\'s plan.</div>';
+    el.innerHTML = '<div class="text-sm text-secondary" style="padding:8px 0;">Rest day — no revision scheduled.</div>';
     return;
   }
 
@@ -2664,15 +2680,7 @@ function renderHomeRevList() {
   el.innerHTML = html;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btnGenRevHome = document.getElementById("btnGenRevHome");
-  if (btnGenRevHome) {
-    btnGenRevHome.addEventListener("click", () => {
-      generateSchedule(getTodayStr());
-      renderHomeRevList();
-    });
-  }
-});
+// btnGenRevHome removed — schedule is auto-generated on app load
 
 /* ═══════════════════════════════════════════════════════════════════
    TASKS PAGE — DAY NAV + REV SCHEDULE VIEW
@@ -2944,83 +2952,79 @@ function renderHome() {
 
 document.getElementById("btnGenItinerary").addEventListener("click", () => {
   const now = new Date();
-  const todaySubjects = TIMETABLE[now.getDay()] || [];
   const customNotes = (document.getElementById("itineraryNotes").value || "").trim();
-  let prompt = `=== REVISION ITINERARY REQUEST ===\n`;
-  prompt += `Date: ${formatDate(now)}\n`;
-  prompt += `Day: ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()]}\n`;
-  prompt += `Subjects scheduled today: ${todaySubjects.length ? todaySubjects.join(", ") : "REST DAY"}\n`;
-  if (customNotes) prompt += `Student's notes for today: ${customNotes}\n`;
-  prompt += "\n";
+  const todayStr = getTodayStr();
 
-  for (const subj of todaySubjects) {
-    const counts = countTL(subj);
-    const allT = allTopicsFlat(subj);
-    const reds = allT.filter(t => getTL(subj, t) === "r");
-    const ambers = allT.filter(t => getTL(subj, t) === "a");
+  // Get today's scheduled revision items (auto-generated on load)
+  const revItems = getOrGenerateSchedule(todayStr);
+  renderHomeRevList();
 
-    prompt += `--- ${subj} ---\n`;
-    prompt += `Traffic lights: Red ${counts.r} | Amber ${counts.a} | Green ${counts.g}\n`;
-    prompt += `Red topics:\n${reds.length ? reds.map(t => "  - " + t).join("\n") : "  (none)"}\n`;
-    prompt += `Amber topics:\n${ambers.length ? ambers.map(t => "  - " + t).join("\n") : "  (none)"}\n`;
-    prompt += `Green topic count: ${counts.g}\n\n`;
-
-    // Past paper results (last 3)
-    const papers = (state.papers[subj] || []).slice(-3);
-    if (papers.length) {
-      prompt += `Last ${papers.length} paper(s):\n`;
-      for (const p of papers) {
-        prompt += `  ${p.year} ${p.paper}: ${p.pct}%${p.wrong ? " — Wrong: " + p.wrong : ""}\n`;
-      }
-    } else {
-      prompt += `No past papers logged yet.\n`;
-    }
-
-    // Weekly progress
-    const wc = state.weekCount[subj] || 0;
-    const wt = PAPER_TARGETS[subj] || 0;
-    prompt += `Weekly paper progress: ${wc}/${wt}\n`;
-
-    // Next recommended paper
-    const rec = getNextRecommended(subj);
-    prompt += `Next recommended paper: ${rec || "All completed"}\n`;
-
-    // Time until nearest exam
-    const ne2 = nextExam(subj);
-    if (ne2) {
-      prompt += `Time until nearest exam (${ne2.name}): ${daysUntil(ne2.date)} days\n`;
-    }
-    prompt += "\n";
+  // Group by subject
+  const bySubject = {};
+  for (const item of revItems) {
+    if (!bySubject[item.subject]) bySubject[item.subject] = [];
+    bySubject[item.subject].push(item);
   }
 
-  // Generate today's revision schedule and include in prompt
-  const todayRevItems = getOrGenerateSchedule(getTodayStr());
-  if (todayRevItems && todayRevItems.length > 0) {
-    prompt += `=== TODAY'S SPACED REPETITION SCHEDULE ===\n`;
-    const revBySubj = {};
-    for (const item of todayRevItems) {
-      if (!revBySubj[item.subject]) revBySubj[item.subject] = [];
-      revBySubj[item.subject].push(item);
-    }
-    for (const [subj, sitems] of Object.entries(revBySubj)) {
-      prompt += `${subj}:\n`;
-      for (const item of sitems) {
-        const tlLabel = item.tl === "r" ? "Red" : item.tl === "a" ? "Amber" : "Green";
-        prompt += `  - [${tlLabel}] ${item.topic}\n`;
+  const dayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][now.getDay()];
+  let prompt = `=== TODAY'S REVISION PROMPT ===\n`;
+  prompt += `${formatDate(now)}\n`;
+  if (customNotes) prompt += `Student note: ${customNotes}\n`;
+  prompt += `\n`;
+
+  if (!Object.keys(bySubject).length) {
+    prompt += `Rest day — no revision scheduled.\n`;
+  } else {
+    for (const [subj, items] of Object.entries(bySubject)) {
+      const reds   = items.filter(i => i.tl === "r");
+      const ambers = items.filter(i => i.tl === "a");
+      const greens = items.filter(i => i.tl === "g");
+      const ne2 = nextExam(subj);
+      const daysToExam = ne2 ? daysUntil(ne2.date) : null;
+
+      prompt += `━━━ ${subj.toUpperCase()}`;
+      if (daysToExam !== null) prompt += ` (${daysToExam} days to ${ne2.name})`;
+      prompt += ` ━━━\n`;
+
+      // Today's topics
+      prompt += `Today's topics:\n`;
+      for (const i of reds)   prompt += `  🔴 ${i.topic}${i.overdue ? " [carried forward]" : ""}\n`;
+      for (const i of ambers) prompt += `  🟡 ${i.topic}${i.overdue ? " [carried forward]" : ""}\n`;
+      for (const i of greens) prompt += `  🟢 ${i.topic}\n`;
+      prompt += `\n`;
+
+      // For each red: 2–3 exam-style questions + key ideas
+      if (reds.length) {
+        prompt += `For each RED topic below, provide:\n`;
+        prompt += `  • 2–3 exam-style questions with model answers\n`;
+        prompt += `  • 2–3 key ideas or common mistakes to watch for\n`;
+        for (const i of reds) prompt += `  → ${i.topic}\n`;
+        prompt += `\n`;
       }
+
+      // For each amber: 1 question + 1 key idea
+      if (ambers.length) {
+        prompt += `For each AMBER topic below, provide:\n`;
+        prompt += `  • 1 exam-style question with a model answer\n`;
+        prompt += `  • 1 key idea or formula reminder\n`;
+        for (const i of ambers) prompt += `  → ${i.topic}\n`;
+        prompt += `\n`;
+      }
+
+      // Green topics: brief mention only (no questions)
+      // Past paper context (last 2)
+      const papers = (state.papers[subj] || []).slice(-2);
+      if (papers.length) {
+        prompt += `Recent papers: ${papers.map(p => `${p.year} ${p.paper} ${p.pct}%`).join(" | ")}\n`;
+      }
+      if (customNotes) prompt += `Adjust for: ${customNotes}\n`;
+      prompt += `\n`;
     }
-    prompt += "\n";
-    renderHomeRevList();
   }
 
-  prompt += `=== INSTRUCTIONS FOR CLAUDE ===\n`;
-  prompt += `Produce a concise revision itinerary for today. For each subject:\n`;
-  prompt += `1. Topics to focus on (prioritise red first, then amber — see spaced repetition schedule above)\n`;
-  prompt += `2. Two exam-style practice questions per subject with brief model answers\n`;
-  prompt += `3. Next past paper to sit\n`;
-  prompt += `4. Any patterns spotted from wrong-topic notes across papers\n`;
-  if (customNotes) prompt += `5. Take the student's notes into account: "${customNotes}" — adjust the plan accordingly.\n`;
-  prompt += `No micromanagement. Format clearly per subject.\n`;
+  prompt += `=== FORMAT ===\n`;
+  prompt += `Structure clearly per subject. Keep answers concise — exam-style bullet points.\n`;
+  prompt += `Do not cover topics not listed above. Focus effort on red first, then amber.\n`;
 
   const ta = document.getElementById("itineraryOutput");
   ta.value = prompt;
@@ -3653,8 +3657,29 @@ function triggerConfetti(originEl) {
 }
 
 function renderHomePreview() {
-  // homeTasksPreview replaced by homeRevList widget; this is a no-op kept for compatibility
+  renderHomeTodoPreview();
   renderHomeRevList();
+}
+
+function renderHomeTodoPreview() {
+  const el = document.getElementById("homeTodoPreview");
+  if (!el) return;
+  const todos = (state.todos || []).filter(t => !t.completed);
+  if (!todos.length) {
+    el.innerHTML = '<div class="text-sm text-secondary" style="padding:4px 0;">No tasks. All clear!</div>';
+    return;
+  }
+  const shown = todos.slice(0, 3);
+  let html = shown.map(t =>
+    `<div class="rev-item" style="padding:5px 0;">
+      <span class="todo-preview-check"></span>
+      <span class="rev-topic-name" style="font-size:13px;">${escHtml(t.text)}</span>
+    </div>`
+  ).join("");
+  if (todos.length > 3) {
+    html += `<div class="text-sm text-secondary" style="padding:4px 0;">+${todos.length - 3} more</div>`;
+  }
+  el.innerHTML = html;
 }
 
 function setupTodoListeners() {
@@ -3687,8 +3712,21 @@ document.addEventListener("DOMContentLoaded", setupTodoListeners);
 setupTodoListeners(); // Also try immediately
 
 /* ═══════════════════════════════════════════════════════════════════
-   INIT
+   INIT — auto-generate revision schedule for today + 7 days ahead
    ═══════════════════════════════════════════════════════════════════ */
+(function autoGenerateSchedule() {
+  const todayStr = getTodayStr();
+  // Generate today and the next 7 days if not already done
+  for (let offset = 0; offset <= 7; offset++) {
+    const dateStr = getDateStr(offset);
+    const existing = state.revSchedule[dateStr];
+    // Only generate if empty — preserves manually-ticked progress
+    if (!existing || existing.length === 0) {
+      generateSchedule(dateStr);
+    }
+  }
+})();
+
 if (!location.hash) location.hash = "#home";
 route();
 updatePaperSelector();
