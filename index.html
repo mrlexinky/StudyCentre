@@ -1403,17 +1403,6 @@ textarea:focus, input:focus, select:focus {
 
 /* ═══ DASHBOARD OVERHAUL ═══ */
 
-/* Hero quick-action buttons */
-.hero-actions {
-  display: flex;
-  gap: var(--spacing);
-  margin-top: calc(var(--spacing) * 2.5);
-  flex-wrap: wrap;
-}
-
-/* Stats grid spacing when not inside home-tools wrapper */
-.stats-grid.mt2 { margin-top: calc(var(--spacing) * 2); }
-
 /* Stat cards clickable */
 .stat-card { cursor: pointer; }
 
@@ -1442,6 +1431,59 @@ textarea:focus, input:focus, select:focus {
 .home-diary-quick-log input[type="number"] {
   width: 70px;
   flex-shrink: 0;
+}
+
+/* ═══ HOME SEAMLESS LAYOUT ═══ */
+
+/* Container for home: no extra top padding, normal sides */
+.home-container {
+  padding-top: calc(var(--spacing) * 2.5);
+  padding-bottom: calc(var(--spacing) * 4);
+}
+
+/* Stat cards on home: borderless, no shadow, blend into page */
+#page-home .stat-card {
+  background: transparent;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: none;
+  padding: calc(var(--spacing) * 1.5) 0;
+}
+#page-home .stat-card:hover {
+  box-shadow: none;
+  transform: none;
+}
+/* TODAY label becomes the indicator instead of a border */
+#page-home .stat-card-label {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Home sections: no card box, just vertical rhythm */
+.home-section {
+  padding: calc(var(--spacing) * 2.5) 0;
+}
+
+/* Section label — replaces h3 inside home sections */
+.home-section-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+
+/* Section header row with label + contextual link */
+.home-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: calc(var(--spacing) * 1.5);
+}
+.home-section-header .home-section-label {
+  margin-bottom: 0;
 }
 </style>
 </head>
@@ -1530,38 +1572,38 @@ textarea:focus, input:focus, select:focus {
           <div class="hero-meta-sub" id="homeWeekHoursSub"></div>
         </div>
       </div>
-      <div class="hero-actions">
-        <a class="btn btn-sm" href="#diary">Log Session</a>
-        <a class="btn btn-sm" href="#papers">Log Paper</a>
-        <a class="btn btn-sm" href="#countdown">All Exams ↗</a>
-        <a class="btn btn-sm" href="#resources">Resources ↗</a>
-      </div>
     </div>
 
     <!-- Home content -->
-    <div class="container" style="padding-top: calc(var(--spacing)*3); padding-bottom: 0;">
+    <div class="container home-container">
 
-      <!-- Revision plan — primary daily action -->
-      <div class="card" id="homeRevCard">
-        <h3>Today's Revision Plan</h3>
-        <div id="homeRevList"></div>
-        <div class="card-footer-link">
-          <a class="contextual-link" href="#traffic">Update topic colours →</a>
+      <!-- Subject stats grid — directly below hero -->
+      <div class="stats-grid" id="homeStatsGrid"></div>
+
+      <div class="section-divider"></div>
+
+      <!-- Revision plan -->
+      <div class="home-section" id="homeRevCard">
+        <div class="home-section-header">
+          <span class="home-section-label">Today's Revision Plan</span>
+          <a class="contextual-link" href="#traffic">Update colours →</a>
         </div>
+        <div id="homeRevList"></div>
       </div>
 
+      <div class="section-divider"></div>
+
       <!-- Todo preview -->
-      <div class="card mt2" id="homeTodoPreviewCard">
-        <h3>Tasks</h3>
+      <div class="home-section" id="homeTodoPreviewCard">
+        <div class="home-section-label">Tasks</div>
         <div id="homeTodoPreview"></div>
       </div>
 
-      <!-- Subject stats grid -->
-      <div class="stats-grid mt2" id="homeStatsGrid"></div>
+      <div class="section-divider"></div>
 
-      <!-- Study activity + quick diary log -->
-      <div class="card mt2" id="homeActivityCard">
-        <h3>Study Activity</h3>
+      <!-- Study activity + quick log -->
+      <div class="home-section" id="homeActivityCard">
+        <div class="home-section-label">Study Activity</div>
         <div class="home-diary-quick-log">
           <input type="number" id="homeLogHours" min="0" max="16" step="0.25" placeholder="hrs">
           <div class="quality-btns" id="homeQualityBtns">
@@ -1576,14 +1618,16 @@ textarea:focus, input:focus, select:focus {
         <div class="home-activity-grid-wrap" id="homeActivityGrid"></div>
       </div>
 
-      <!-- Today's Prompt (collapsed) -->
-      <div class="card mt2">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <h3 style="margin-bottom:0;">Today's Prompt</h3>
+      <div class="section-divider"></div>
+
+      <!-- Today's Prompt -->
+      <div class="home-section">
+        <div class="home-section-header">
+          <span class="home-section-label">Today's Prompt</span>
           <button class="btn btn-sm" id="btnTogglePrompt">Show</button>
         </div>
         <div id="promptBody" style="display:none;">
-          <p class="text-sm text-secondary mb2" style="margin-top:12px;">Generates a focused prompt based on today's revision plan — paste into Claude.</p>
+          <p class="text-sm text-secondary mb2">Generates a focused prompt based on today's revision plan — paste into Claude.</p>
           <div class="form-group mb2">
             <label>Anything specific to include today?</label>
             <textarea id="itineraryNotes" rows="2" placeholder="e.g. struggling with complex numbers, only 2 hours available…"></textarea>
