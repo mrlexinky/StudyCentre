@@ -1553,22 +1553,23 @@ textarea:focus, input:focus, select:focus {
 }
 .paper-section:last-child { border-bottom: none; }
 
-/* ── Subject links bottom sheet ── */
+/* ── Subject links centre modal ── */
 .subject-sheet {
   position: fixed;
   inset: 0;
   z-index: 300;
   background: rgba(0,0,0,0.28);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  padding: calc(var(--spacing)*2);
 }
 .subject-sheet-panel {
   background: var(--bg-page);
-  border-radius: 14px 14px 0 0;
-  padding: calc(var(--spacing)*3) calc(var(--spacing)*3) calc(var(--spacing)*5);
+  border-radius: 14px;
+  padding: calc(var(--spacing)*3);
   width: 100%;
-  max-width: 560px;
+  max-width: 420px;
 }
 .subject-sheet-header {
   display: flex;
