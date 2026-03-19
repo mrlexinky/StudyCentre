@@ -3548,7 +3548,7 @@ function renderHome() {
     const avgPct = papers.length ? Math.round(papers.reduce((s,p)=>s+p.pct,0)/papers.length) : null;
     const isToday = todaySubjects.includes(subj);
 
-    gridHtml += `<div class="stat-card" onclick="showSubjectSheet(${JSON.stringify(subj)})" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
+    gridHtml += `<div class="stat-card" onclick="showSubjectSheet('${subj}')" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
       <div class="stat-card-label">${isToday ? "Today" : "&nbsp;"}</div>
       <div class="stat-card-name">${escHtml(shortNames[subj] || subj)}</div>
       <div class="stat-mini-bar">
