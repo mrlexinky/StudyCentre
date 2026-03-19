@@ -1540,6 +1540,88 @@ textarea:focus, input:focus, select:focus {
   align-items: flex-start;
   flex: 1;
 }
+
+/* ── Seamless page sections (non-home pages, replacing .card) ── */
+.page-section {
+  padding: calc(var(--spacing) * 2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.page-section:last-child { border-bottom: none; }
+.paper-section {
+  padding: calc(var(--spacing) * 2.5) 0;
+  border-bottom: 1px solid var(--border);
+}
+.paper-section:last-child { border-bottom: none; }
+
+/* ── Subject links bottom sheet ── */
+.subject-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0,0,0,0.28);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.subject-sheet-panel {
+  background: var(--bg-page);
+  border-radius: 14px 14px 0 0;
+  padding: calc(var(--spacing)*3) calc(var(--spacing)*3) calc(var(--spacing)*5);
+  width: 100%;
+  max-width: 560px;
+}
+.subject-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: calc(var(--spacing)*2.5);
+}
+.subject-sheet-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.subject-sheet-close {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+.subject-sheet-links {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: calc(var(--spacing)*2.5);
+}
+.subject-sheet-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--spacing)*1.5) 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 300;
+}
+.subject-sheet-link:last-child { border-bottom: none; }
+.subject-sheet-link:hover { opacity: 0.65; }
+.subject-sheet-link-tag {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+.subject-sheet-arrow {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
 </style>
 </head>
 <body>
@@ -1688,18 +1770,16 @@ textarea:focus, input:focus, select:focus {
   <div class="page" id="page-traffic">
   <div class="container">
     <h2>Traffic Lights</h2>
-    <div class="card">
-      <div class="tl-tabs" id="tlTabs"></div>
-      <div class="tl-summary" id="tlSummary"></div>
-      <div class="tl-search-wrap">
-        <input type="text" id="tlSearch" placeholder="Search topics…" class="tl-search-input">
-      </div>
-      <div id="tlTopics"></div>
-      <div class="card-footer-link" style="margin-top:16px;">
-        <a class="contextual-link" href="#home">Check today's plan →</a>
-      </div>
+    <div class="tl-tabs" id="tlTabs"></div>
+    <div class="tl-summary" id="tlSummary"></div>
+    <div class="tl-search-wrap">
+      <input type="text" id="tlSearch" placeholder="Search topics…" class="tl-search-input">
     </div>
+    <div id="tlTopics"></div>
     <div class="tl-saved" id="tlSaved"></div>
+    <div style="margin-top:calc(var(--spacing)*2);">
+      <a class="contextual-link" href="#home">Check today's plan →</a>
+    </div>
   </div><!-- /container -->
   </div><!-- /page-traffic -->
 
@@ -1711,8 +1791,8 @@ textarea:focus, input:focus, select:focus {
     <h2>Past Papers</h2>
     <div id="paperSections"></div>
 
-    <div class="card mt3">
-      <h3>Log a Paper</h3>
+    <div class="page-section">
+      <div class="home-section-label">Log a Paper</div>
       <div class="form-row">
         <div class="form-group">
           <label>Subject</label>
@@ -1775,8 +1855,8 @@ textarea:focus, input:focus, select:focus {
     <h2>Study Diary</h2>
 
     <!-- Heat grid (rendered by JS) -->
-    <div class="card" style="padding-bottom: calc(var(--spacing)*2);">
-      <h3 style="margin-bottom:calc(var(--spacing)*2);">Activity</h3>
+    <div class="page-section">
+      <div class="home-section-label">Activity</div>
       <div id="diaryGrid"></div>
       <div style="display:flex;gap:calc(var(--spacing)*2);margin-top:calc(var(--spacing)*1.5);flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-tertiary);">
@@ -1795,8 +1875,8 @@ textarea:focus, input:focus, select:focus {
     </div>
 
     <!-- Log form -->
-    <div class="card mt2">
-      <h3>Log today's session</h3>
+    <div class="page-section">
+      <div class="home-section-label">Log today's session</div>
       <div class="form-row mt1">
         <div class="form-group" style="flex:0.5;min-width:90px;">
           <label>Hours</label>
@@ -1825,11 +1905,11 @@ textarea:focus, input:focus, select:focus {
     </div>
 
     <!-- Entry list -->
-    <div class="card mt2">
-      <h3>Recent entries</h3>
+    <div class="page-section">
+      <div class="home-section-label">Recent entries</div>
       <div class="diary-entry-list" id="diaryEntryList"></div>
     </div>
-    <div class="card-footer-link mt2">
+    <div style="margin-top:calc(var(--spacing)*2);">
       <a class="contextual-link" href="#home">← Back to home</a>
     </div>
   </div><!-- /container -->
@@ -1842,15 +1922,15 @@ textarea:focus, input:focus, select:focus {
     <div class="container">
       <h2>Tasks</h2>
 
-      <!-- 1. Add a task form — just a text field, press Enter to add -->
-      <div class="card" style="padding: calc(var(--spacing)*1.75) calc(var(--spacing)*2.5); margin-bottom: calc(var(--spacing)*2);">
-        <input type="text" id="todoInput" placeholder="Add a task… press Enter" style="margin:0;border:none;outline:none;box-shadow:none;background:transparent;width:100%;font-size:14px;font-weight:300;">
+      <!-- 1. Add a task form -->
+      <div style="border-bottom:1px solid var(--border);padding:calc(var(--spacing)*1.75) 0;margin-bottom:calc(var(--spacing)*2);">
+        <input type="text" id="todoInput" placeholder="Add a task… press Enter" style="margin:0;border:none;outline:none;box-shadow:none;background:transparent;width:100%;font-size:14px;font-weight:300;color:var(--text-primary);">
       </div>
       <button class="btn" id="btnAddTodo" style="display:none;">Add</button>
 
       <!-- 2. Manual to-do list -->
-      <div class="card mt2">
-        <h3>To-do list</h3>
+      <div class="page-section">
+        <div class="home-section-label">To-do list</div>
         <div id="todoList"></div>
       </div>
 
@@ -1984,6 +2064,20 @@ textarea:focus, input:focus, select:focus {
 
 <!-- Confetti container -->
 <div id="confettiContainer"></div>
+
+<!-- Subject links bottom sheet -->
+<div id="subjectSheet" class="subject-sheet" style="display:none;" onclick="if(event.target===this)closeSubjectSheet()">
+  <div class="subject-sheet-panel">
+    <div class="subject-sheet-header">
+      <span id="subjectSheetName" class="subject-sheet-title"></span>
+      <button class="subject-sheet-close" onclick="closeSubjectSheet()">✕</button>
+    </div>
+    <div id="subjectSheetLinks" class="subject-sheet-links"></div>
+    <div class="subject-sheet-footer">
+      <button class="btn" id="subjectSheetTopics">View topics →</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════
@@ -2603,6 +2697,32 @@ const PAPER_STRUCTURES = {
 };
 
 const SUBJECTS = ["Mathematics", "Further Maths", "Physics", "Computer Science"];
+
+/* Subject resource links (restored from resources page) */
+const SUBJECT_LINKS = {
+  "Mathematics": [
+    { label: "Cambridge Go — Maths Resources", url: "https://www.cambridge.org/go/resources/A-Level-Mathematics-for-AQA" },
+    { label: "AQA Formula Booklet", url: "https://filestore.aqa.org.uk/resources/mathematics/AQA-AS-A-MATHS-FORMULAE.PDF", tag: "PDF" },
+    { label: "PMT Past Papers", url: "https://www.physicsandmathstutor.com/maths-revision/a-level-aqa/papers/" },
+    { label: "MADAS Maths — Integration Booklets", url: "https://madasmaths.com/archive_maths_booklets_standard_topics_integration.html" }
+  ],
+  "Further Maths": [
+    { label: "Cambridge Go — Further Maths Resources", url: "https://www.cambridge.org/go/resources/A-Level-Further-Mathematics-for-AQA-2017" },
+    { label: "AQA Further Maths Formula Booklet", url: "https://filestore.aqa.org.uk/resources/mathematics/AQA-AS-A-FMATHS-FORMULAE.PDF", tag: "PDF" },
+    { label: "PMT Past Papers", url: "https://www.physicsandmathstutor.com/maths-revision/a-level-aqa/papers-further/" },
+    { label: "MADAS Further Maths — Integration Booklets", url: "https://madasmaths.com/archive_maths_booklets_further_topics_integration.html" }
+  ],
+  "Physics": [
+    { label: "Kerboodle — Physics Textbook", url: "https://www.kerboodle.com/api/courses/45149/interactives/1971235.html" },
+    { label: "AQA Physics Data & Formulae Sheet", url: "https://filestore.aqa.org.uk/resources/physics/AQA-7408-SDB.PDF", tag: "PDF" },
+    { label: "PMT Past Papers", url: "https://www.physicsandmathstutor.com/past-papers/a-level-physics/" },
+    { label: "PMT Physics Revision", url: "https://www.physicsandmathstutor.com/physics-revision/a-level-aqa/" }
+  ],
+  "Computer Science": [
+    { label: "PMT Computer Science Revision", url: "https://www.physicsandmathstutor.com/computer-science-revision/" },
+    { label: "PMT Past Papers", url: "https://www.physicsandmathstutor.com/past-papers/a-level-computer-science/" }
+  ]
+};
 
 /* Quick-access links shown in the Papers section per subject */
 const SUBJECT_PAPER_LINKS = {
@@ -3428,7 +3548,7 @@ function renderHome() {
     const avgPct = papers.length ? Math.round(papers.reduce((s,p)=>s+p.pct,0)/papers.length) : null;
     const isToday = todaySubjects.includes(subj);
 
-    gridHtml += `<div class="stat-card" onclick="tlActiveSubject=${JSON.stringify(subj)};window.location.hash='#traffic';" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
+    gridHtml += `<div class="stat-card" onclick="showSubjectSheet(${JSON.stringify(subj)})" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
       <div class="stat-card-label">${isToday ? "Today" : "&nbsp;"}</div>
       <div class="stat-card-name">${escHtml(shortNames[subj] || subj)}</div>
       <div class="stat-mini-bar">
@@ -4025,7 +4145,7 @@ function renderPapers() {
       </a>`
     ).join("");
 
-    html += `<div class="card paper-section">
+    html += `<div class="paper-section">
       <div style="display:flex;align-items:center;gap:6px;">
         <h3 style="margin-bottom:0;">${escHtml(subj)}</h3>
         <button class="paper-links-btn" data-subj="${escHtml(subj)}" title="Quick links">
@@ -4261,6 +4381,33 @@ function renderTodos() {
     });
   });
 }
+
+/* ── Subject links bottom sheet ── */
+let _sheetSubj = null;
+
+function showSubjectSheet(subj) {
+  _sheetSubj = subj;
+  document.getElementById("subjectSheetName").textContent = subj;
+  const links = SUBJECT_LINKS[subj] || [];
+  document.getElementById("subjectSheetLinks").innerHTML = links.map(l =>
+    `<a class="subject-sheet-link" href="${l.url}" target="_blank" rel="noopener">
+      <span>${escHtml(l.label)}${l.tag ? `<span class="subject-sheet-link-tag">${l.tag}</span>` : ""}</span>
+      <span class="subject-sheet-arrow">↗</span>
+    </a>`
+  ).join("");
+  document.getElementById("subjectSheet").style.display = "flex";
+}
+
+function closeSubjectSheet() {
+  document.getElementById("subjectSheet").style.display = "none";
+  _sheetSubj = null;
+}
+
+document.getElementById("subjectSheetTopics").addEventListener("click", () => {
+  if (_sheetSubj) tlActiveSubject = _sheetSubj;
+  closeSubjectSheet();
+  window.location.hash = "#traffic";
+});
 
 function triggerConfetti(originEl) {
   const container = document.getElementById("confettiContainer");
