@@ -36,8 +36,8 @@
   --accent: #48473F;
   --spacing: 8px;
   --card-shadow: 0 1px 2px rgba(72,71,63,0.06);
-  --shadow-lift: 0 6px 22px rgba(72,71,63,0.13);
-  --radius-card: 12px;
+  --shadow-lift: 0 4px 14px rgba(72,71,63,0.09);
+  --radius-card: 8px;
   --radius-sm: 7px;
   --radius-xs: 4px;
 }
@@ -68,7 +68,7 @@
 
     --accent: #B8B6AE;
     --card-shadow: 0 1px 4px rgba(0,0,0,0.28);
-    --shadow-lift: 0 6px 22px rgba(0,0,0,0.36);
+    --shadow-lift: 0 4px 14px rgba(0,0,0,0.26);
   }
 }
 
@@ -187,7 +187,7 @@ body {
 }
 
 .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-lift);
 }
 
@@ -195,7 +195,7 @@ body {
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-lift);
 }
 
@@ -203,7 +203,7 @@ body {
    TYPOGRAPHY
    ═══════════════════════════════════════════════════════════════ */
 h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 28px; line-height: 1.2; margin-bottom: calc(var(--spacing) * 2); }
-h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 26px; letter-spacing: -0.015em; margin-bottom: calc(var(--spacing) * 3); padding-bottom: calc(var(--spacing) * 2); border-bottom: 1px solid var(--border); }
+h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 32px; letter-spacing: -0.02em; margin-bottom: calc(var(--spacing) * 3); padding-bottom: calc(var(--spacing) * 2); border-bottom: 1px solid var(--border); }
 h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 15px; margin-bottom: var(--spacing); }
 
 .label {
@@ -903,7 +903,7 @@ textarea:focus, input:focus, select:focus {
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .resource-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-lift);
 }
 
@@ -1367,6 +1367,39 @@ textarea:focus, input:focus, select:focus {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-card); padding: 12px; margin-bottom: 8px;
 }
+
+/* Subject box (home rev plan + tasks rev view) */
+.rev-subject-box {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-emphasis);
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  margin-bottom: 6px;
+}
+.rev-subject-box-name {
+  font-size: 11px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-primary);
+}
+.rev-progress-line {
+  font-size: 11px; color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+
+/* Unmark button — mirrors skip btn but uses accent colours */
+.rev-unmark-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); font-size: 12px; padding: 2px 6px;
+  border-radius: 3px; flex-shrink: 0; line-height: 1;
+  transition: color 0.12s, background 0.12s;
+}
+.rev-unmark-btn:hover { color: var(--amber-text); background: var(--amber-fill); }
+
+/* Home activity heatmap compact wrapper */
+.home-activity-grid-wrap {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
 </style>
 </head>
 <body>
@@ -1492,6 +1525,12 @@ textarea:focus, input:focus, select:focus {
           <div id="homeRevList"></div>
         </div>
 
+        <!-- Study activity heatmap -->
+        <div class="card mt2" id="homeActivityCard">
+          <h3>Study Activity</h3>
+          <div class="home-activity-grid-wrap" id="homeActivityGrid"></div>
+        </div>
+
         <div class="card mt2">
           <h3>Today's Prompt</h3>
           <p class="text-sm text-secondary mb2">Generates a focused prompt based on today's revision plan — paste into Claude.</p>
@@ -1514,12 +1553,14 @@ textarea:focus, input:focus, select:focus {
   <div class="page" id="page-traffic">
   <div class="container">
     <h2>Traffic Lights</h2>
-    <div class="tl-tabs" id="tlTabs"></div>
-    <div class="tl-summary" id="tlSummary"></div>
-    <div class="tl-search-wrap">
-      <input type="text" id="tlSearch" placeholder="Search topics…" class="tl-search-input">
+    <div class="card">
+      <div class="tl-tabs" id="tlTabs"></div>
+      <div class="tl-summary" id="tlSummary"></div>
+      <div class="tl-search-wrap">
+        <input type="text" id="tlSearch" placeholder="Search topics…" class="tl-search-input">
+      </div>
+      <div id="tlTopics"></div>
     </div>
-    <div id="tlTopics"></div>
     <div class="tl-saved" id="tlSaved"></div>
   </div><!-- /container -->
   </div><!-- /page-traffic -->
@@ -2765,19 +2806,23 @@ function completeRevItem(id, dateStr) {
   const item = items.find(i => i.id === id);
   if (!item) return;
 
-  item.status = "done";
-  item.completedDate = dateStr;
-
   // Always read the CURRENT traffic light (user may have just changed it via dots)
   const currentTL = getTL(item.subject, item.topic);
-  // Update stored tl on the item to match
-  item.tl = currentTL;
-
   const key = item.subject + "|" + item.topic;
   if (!state.spacedRep[key]) {
     state.spacedRep[key] = { lastReviewed: null, interval: getDefaultInterval(currentTL), reps: 0 };
   }
   const sr = state.spacedRep[key];
+
+  // Save previous SR state on the item for undo
+  item._prevLastReviewed = sr.lastReviewed || null;
+  item._prevInterval = sr.interval;
+  item._prevReps = sr.reps || 0;
+
+  item.status = "done";
+  item.completedDate = dateStr;
+  item.tl = currentTL;
+
   sr.reps = (sr.reps || 0) + 1;
 
   // Anki-style interval scaling based on current TL colour
@@ -2809,6 +2854,32 @@ function invalidateFutureSchedule(subject, topic) {
       state.revSchedule[ds] = filtered;
     }
   }
+}
+
+/* Unmark: reverses a completed item back to pending, restoring previous SR state */
+function uncompleteRevItem(id, dateStr) {
+  const items = state.revSchedule[dateStr];
+  if (!items) return;
+  const item = items.find(i => i.id === id);
+  if (!item || item.status !== "done") return;
+
+  const key = item.subject + "|" + item.topic;
+  const sr = state.spacedRep[key];
+  if (sr) {
+    sr.lastReviewed = item._prevLastReviewed !== undefined ? item._prevLastReviewed : null;
+    sr.interval = item._prevInterval !== undefined ? item._prevInterval : getDefaultInterval(getTL(item.subject, item.topic));
+    sr.reps = item._prevReps !== undefined ? item._prevReps : Math.max(0, (sr.reps || 1) - 1);
+  }
+
+  item.status = "pending";
+  delete item.completedDate;
+  delete item._prevLastReviewed;
+  delete item._prevInterval;
+  delete item._prevReps;
+
+  // Re-add to future schedule validation window
+  invalidateFutureSchedule(item.subject, item.topic);
+  saveState();
 }
 
 /* Skip: marks item as skipped (removes from today, doesn't change interval/reps).
@@ -2847,16 +2918,17 @@ function renderHomeRevList() {
     bySubject[item.subject].push(item);
   }
 
-  let html = `<div class="text-sm text-secondary" style="margin-bottom:8px;">${done} / ${total} done</div>`;
+  let html = `<div class="rev-progress-line">${done} / ${total} done</div>`;
 
   for (const [subj, sitems] of Object.entries(bySubject)) {
-    // Determine the primary section for this subject's items
     const primarySection = sitems[0]?.section || getSectionForTopic(subj, sitems[0]?.topic) || "";
-    // Strip leading "A: " style prefix for display
     const sectionDisplay = primarySection.replace(/^[A-Z0-9]+:\s*/, "");
 
     html += `<div class="rev-subject-group">
-      <div class="rev-subject-label">${escHtml(subj)}${sectionDisplay ? `<span class="rev-section-badge">${escHtml(sectionDisplay)}</span>` : ""}</div>`;
+      <div class="rev-subject-box">
+        <span class="rev-subject-box-name">${escHtml(subj)}</span>
+        ${sectionDisplay ? `<span class="rev-section-badge">${escHtml(sectionDisplay)}</span>` : ""}
+      </div>`;
     for (const item of sitems) {
       const isDone = item.status === "done";
       const doneCls = isDone ? " done" : "";
@@ -2868,11 +2940,13 @@ function renderHomeRevList() {
             <span class="tl-dot tl-dot-a${currentTL === "a" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="a"></span>
             <span class="tl-dot tl-dot-g${currentTL === "g" ? " selected" : " dim"}" data-home-rev-id="${escHtml(item.id)}" data-home-rev-date="${escHtml(todayStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="g"></span>
           </span>`;
-      const skipBtn = isDone ? "" : `<button class="rev-skip-btn" data-skip-id="${escHtml(item.id)}" data-skip-date="${escHtml(todayStr)}" title="Skip for today">✕</button>`;
+      const actionBtn = isDone
+        ? `<button class="rev-unmark-btn" data-unmark-id="${escHtml(item.id)}" data-unmark-date="${escHtml(todayStr)}" title="Unmark to re-rate">↺</button>`
+        : `<button class="rev-skip-btn" data-skip-id="${escHtml(item.id)}" data-skip-date="${escHtml(todayStr)}" title="Skip for today">✕</button>`;
       html += `<div class="rev-item${doneCls}">
         ${dotsHtml}
         <span class="rev-topic-name">${escHtml(item.topic)}</span>
-        ${skipBtn}
+        ${actionBtn}
       </div>`;
     }
     html += `</div>`;
@@ -2900,7 +2974,18 @@ function renderHomeRevList() {
   // Wire skip buttons
   el.querySelectorAll(".rev-skip-btn").forEach(btn => {
     btn.addEventListener("click", () => {
+      haptic(6);
       skipRevItem(btn.dataset.skipId, btn.dataset.skipDate);
+      renderHomeRevList();
+      renderRevScheduleView(viewDate);
+    });
+  });
+
+  // Wire unmark buttons
+  el.querySelectorAll(".rev-unmark-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      haptic(6);
+      uncompleteRevItem(btn.dataset.unmarkId, btn.dataset.unmarkDate);
       renderHomeRevList();
       renderRevScheduleView(viewDate);
     });
@@ -2962,8 +3047,8 @@ function renderRevScheduleView(dateStr) {
 
     let html = '<div class="card">';
     const done = items.filter(i => i.status === "done").length;
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <span class="text-sm text-secondary">${done} / ${items.length} done</span>
+    html += `<div class="rev-progress-line" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>${done} / ${items.length} done</span>
       <button class="btn btn-sm" id="btnRegenDay">Regenerate</button>
     </div>`;
 
@@ -2971,7 +3056,10 @@ function renderRevScheduleView(dateStr) {
       const primarySection2 = sitems[0]?.section || getSectionForTopic(subj, sitems[0]?.topic) || "";
       const sectionDisplay2 = primarySection2.replace(/^[A-Z0-9]+:\s*/, "");
       html += `<div class="rev-subject-group">
-        <div class="rev-subject-label">${escHtml(subj)}${sectionDisplay2 ? `<span class="rev-section-badge">${escHtml(sectionDisplay2)}</span>` : ""}</div>`;
+        <div class="rev-subject-box">
+          <span class="rev-subject-box-name">${escHtml(subj)}</span>
+          ${sectionDisplay2 ? `<span class="rev-section-badge">${escHtml(sectionDisplay2)}</span>` : ""}
+        </div>`;
       for (const item of sitems) {
         const isDone = item.status === "done";
         const doneCls = isDone ? " done" : "";
@@ -2983,11 +3071,13 @@ function renderRevScheduleView(dateStr) {
               <span class="tl-dot tl-dot-a${currentTL === "a" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="a"></span>
               <span class="tl-dot tl-dot-g${currentTL === "g" ? " selected" : " dim"}" data-task-rev-id="${escHtml(item.id)}" data-task-rev-date="${escHtml(dateStr)}" data-topic="${escHtml(item.topic)}" data-subj="${escHtml(item.subject)}" data-val="g"></span>
             </span>`;
-        const skipBtn2 = isDone ? "" : `<button class="rev-skip-btn" data-skip-id="${escHtml(item.id)}" data-skip-date="${escHtml(dateStr)}" title="Skip for today">✕</button>`;
+        const actionBtn2 = isDone
+          ? `<button class="rev-unmark-btn" data-unmark-id="${escHtml(item.id)}" data-unmark-date="${escHtml(dateStr)}" title="Unmark to re-rate">↺</button>`
+          : `<button class="rev-skip-btn" data-skip-id="${escHtml(item.id)}" data-skip-date="${escHtml(dateStr)}" title="Skip for today">✕</button>`;
         html += `<div class="rev-item${doneCls}">
           ${dotsHtml}
           <span class="rev-topic-name">${escHtml(item.topic)}</span>
-          ${skipBtn2}
+          ${actionBtn2}
         </div>`;
       }
       html += `</div>`;
@@ -3015,7 +3105,18 @@ function renderRevScheduleView(dateStr) {
     // Wire skip buttons on tasks page
     el.querySelectorAll(".rev-skip-btn").forEach(btn => {
       btn.addEventListener("click", () => {
+        haptic(6);
         skipRevItem(btn.dataset.skipId, btn.dataset.skipDate);
+        renderRevScheduleView(viewDate);
+        renderHomeRevList();
+      });
+    });
+
+    // Wire unmark buttons on tasks page
+    el.querySelectorAll(".rev-unmark-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        haptic(6);
+        uncompleteRevItem(btn.dataset.unmarkId, btn.dataset.unmarkDate);
         renderRevScheduleView(viewDate);
         renderHomeRevList();
       });
@@ -3203,8 +3304,101 @@ function renderHome() {
   }
   grid.innerHTML = gridHtml;
 
+  // Ensure today's schedule is generated (persisted to localStorage)
+  getOrGenerateSchedule(getTodayStr());
+
   // Revision plan widget
   renderHomeRevList();
+
+  // Activity heatmap
+  renderHomeActivityGrid();
+}
+
+function renderHomeActivityGrid() {
+  const el = document.getElementById("homeActivityGrid");
+  if (!el) return;
+
+  // Build day map from diary
+  const dayMap = {};
+  for (const e of state.diary) {
+    if (!dayMap[e.date]) dayMap[e.date] = { hours: 0, qualSum: 0, count: 0 };
+    dayMap[e.date].hours += e.hours;
+    dayMap[e.date].qualSum += e.quality;
+    dayMap[e.date].count++;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // End on Saturday of current week, show 16 weeks
+  const todayDay = today.getDay();
+  const gridEnd = new Date(today);
+  gridEnd.setDate(today.getDate() + (6 - todayDay));
+
+  const TOTAL_WEEKS = 16;
+  const gridStart = new Date(gridEnd);
+  gridStart.setDate(gridEnd.getDate() - (TOTAL_WEEKS * 7 - 1));
+
+  const weeks = [];
+  let cur = new Date(gridStart);
+  while (cur <= gridEnd) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const dayLabels = ["S","M","T","W","T","F","S"];
+
+  let monthHtml = '<div class="diary-grid-month-label" style="width:24px;"></div>';
+  let lastMonth = -1;
+  for (const week of weeks) {
+    const m = week[1].getMonth();
+    if (m !== lastMonth) {
+      monthHtml += `<div class="diary-grid-month-label" style="width:12px;flex-shrink:0;">${months[m]}</div>`;
+      lastMonth = m;
+    } else {
+      monthHtml += `<div class="diary-grid-month-label" style="width:12px;flex-shrink:0;"></div>`;
+    }
+  }
+
+  let weeksHtml = "";
+  for (const week of weeks) {
+    let weekHtml = '<div class="diary-grid-week">';
+    for (const day of week) {
+      const iso = day.toISOString().slice(0, 10);
+      const data = dayMap[iso];
+      const isFuture = day > today;
+      let cellStyle = "";
+      if (data && !isFuture) {
+        const avgQual = Math.round(data.qualSum / data.count);
+        const color = QUALITY_COLORS[avgQual] || "#888";
+        const opacity = hoursToOpacity(data.hours);
+        cellStyle = `background:${color};opacity:${opacity};`;
+      } else if (isFuture) {
+        cellStyle = "opacity:0;pointer-events:none;";
+      }
+      weekHtml += `<div class="diary-cell" style="${cellStyle}" title="${iso}"></div>`;
+    }
+    weekHtml += "</div>";
+    weeksHtml += weekHtml;
+  }
+
+  let dayLabelsHtml = '<div class="diary-grid-day-labels">';
+  for (const l of dayLabels) {
+    dayLabelsHtml += `<div class="diary-grid-day-label">${l}</div>`;
+  }
+  dayLabelsHtml += "</div>";
+
+  el.innerHTML = `
+    <div class="diary-grid-labels">${monthHtml}</div>
+    <div class="diary-grid">
+      ${dayLabelsHtml}
+      ${weeksHtml}
+    </div>`;
 }
 
 document.getElementById("btnGenItinerary").addEventListener("click", () => {
