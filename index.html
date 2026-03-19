@@ -4543,23 +4543,12 @@ setupTodoListeners(); // Also try immediately
     if (key < yesterday) delete state.revSchedule[key];
   }
 
-  // Regenerate today fresh each session so TL colours are current.
-  // Preserve today's progress (done items) by merging.
-  const todayExisting = state.revSchedule[todayStr] || [];
-  const todayDone = todayExisting.filter(i => i.status === "done");
-  const todayDoneKeys = new Set(todayDone.map(i => i.subject + "|" + i.topic));
-
-  // Generate fresh schedule
-  delete state.revSchedule[todayStr];
-  generateSchedule(todayStr);
-
-  // Merge back done items: mark matching items as done, drop duplicates
-  const freshItems = state.revSchedule[todayStr] || [];
-  for (const item of freshItems) {
-    const key = item.subject + "|" + item.topic;
-    if (todayDoneKeys.has(key)) {
-      item.status = "done";
-    }
+  // Only generate today's schedule if it hasn't been created yet.
+  // Do NOT regenerate on refresh — completed items would be lost because
+  // finished topics are no longer "due" (their spacedRep interval was updated),
+  // so they'd be dropped from the fresh schedule and the done status can't be restored.
+  if (!state.revSchedule[todayStr]) {
+    generateSchedule(todayStr);
   }
 
   // Generate future days fresh
