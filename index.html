@@ -1049,12 +1049,12 @@ textarea:focus, input:focus, select:focus {
   gap: 6px;
 }
 
-.quality-btn {
+.quality-btn, .home-quality-btn {
   font-family: inherit;
   font-size: 13px;
   font-weight: 400;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-emphasis);
   background: var(--bg-card);
@@ -1066,18 +1066,18 @@ textarea:focus, input:focus, select:focus {
   transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
-.quality-btn:active { transform: scale(0.9); }
+.quality-btn:active, .home-quality-btn:active { transform: scale(0.9); }
 
-.quality-btn.active {
+.quality-btn.active, .home-quality-btn.active {
   color: var(--bg-card);
   border-color: transparent;
 }
 
-.quality-btn[data-q="1"].active { background: #C94545; }
-.quality-btn[data-q="2"].active { background: #D98A18; }
-.quality-btn[data-q="3"].active { background: #C0AE18; }
-.quality-btn[data-q="4"].active { background: #7EC444; }
-.quality-btn[data-q="5"].active { background: #479A2C; }
+.quality-btn[data-q="1"].active, .home-quality-btn[data-q="1"].active { background: #C94545; }
+.quality-btn[data-q="2"].active, .home-quality-btn[data-q="2"].active { background: #D98A18; }
+.quality-btn[data-q="3"].active, .home-quality-btn[data-q="3"].active { background: #C0AE18; }
+.quality-btn[data-q="4"].active, .home-quality-btn[data-q="4"].active { background: #7EC444; }
+.quality-btn[data-q="5"].active, .home-quality-btn[data-q="5"].active { background: #479A2C; }
 
 /* Diary entry list */
 .diary-entry-list {
@@ -1400,6 +1400,49 @@ textarea:focus, input:focus, select:focus {
   overflow-x: auto;
   padding-bottom: 2px;
 }
+
+/* ═══ DASHBOARD OVERHAUL ═══ */
+
+/* Hero quick-action buttons */
+.hero-actions {
+  display: flex;
+  gap: var(--spacing);
+  margin-top: calc(var(--spacing) * 2.5);
+  flex-wrap: wrap;
+}
+
+/* Stats grid spacing when not inside home-tools wrapper */
+.stats-grid.mt2 { margin-top: calc(var(--spacing) * 2); }
+
+/* Stat cards clickable */
+.stat-card { cursor: pointer; }
+
+/* Contextual cross-page links */
+.contextual-link {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+.contextual-link:hover { color: var(--text-primary); }
+
+.card-footer-link {
+  margin-top: calc(var(--spacing) * 1.5);
+  text-align: right;
+}
+
+/* Home quick diary log */
+.home-diary-quick-log {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+  margin-bottom: calc(var(--spacing) * 2);
+  flex-wrap: wrap;
+}
+.home-diary-quick-log input[type="number"] {
+  width: 70px;
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -1446,14 +1489,6 @@ textarea:focus, input:focus, select:focus {
     </svg>
     <span class="tab-label">Papers</span>
   </a>
-  <!-- links -->
-  <a class="tab-item" href="#resources" data-route="resources">
-    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M8.5 11.5a4 4 0 005.66 0l1.84-1.84a4 4 0 00-5.66-5.66l-1 1"/>
-      <path d="M11.5 8.5a4 4 0 00-5.66 0L3.99 10.34a4 4 0 005.66 5.66l1-1"/>
-    </svg>
-    <span class="tab-label">Links</span>
-  </a>
   <!-- diary -->
   <a class="tab-item" href="#diary" data-route="diary">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -1465,16 +1500,7 @@ textarea:focus, input:focus, select:focus {
     </svg>
     <span class="tab-label">Diary</span>
   </a>
-  <!-- countdown -->
-  <a class="tab-item" href="#countdown" data-route="countdown">
-    <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
-      <circle cx="10" cy="11" r="7"/>
-      <path d="M10 7.5V11l2.5 2.5"/>
-      <path d="M7.5 1.5h5"/>
-      <path d="M10 1.5V3"/>
-    </svg>
-    <span class="tab-label">Countdown</span>
-  </a>
+
 </nav>
 
 <div id="pageRoot">
@@ -1504,46 +1530,70 @@ textarea:focus, input:focus, select:focus {
           <div class="hero-meta-sub" id="homeWeekHoursSub"></div>
         </div>
       </div>
+      <div class="hero-actions">
+        <a class="btn btn-sm" href="#diary">Log Session</a>
+        <a class="btn btn-sm" href="#papers">Log Paper</a>
+        <a class="btn btn-sm" href="#countdown">All Exams ↗</a>
+        <a class="btn btn-sm" href="#resources">Resources ↗</a>
+      </div>
     </div>
 
-    <!-- Subject stats grid -->
+    <!-- Home content -->
     <div class="container" style="padding-top: calc(var(--spacing)*3); padding-bottom: 0;">
-      <div class="stats-grid" id="homeStatsGrid"></div>
 
-      <!-- Tools -->
-      <div class="home-tools">
-
-        <!-- Todo preview (max 3) -->
-        <div class="card" id="homeTodoPreviewCard">
-          <h3>Tasks</h3>
-          <div id="homeTodoPreview"></div>
+      <!-- Revision plan — primary daily action -->
+      <div class="card" id="homeRevCard">
+        <h3>Today's Revision Plan</h3>
+        <div id="homeRevList"></div>
+        <div class="card-footer-link">
+          <a class="contextual-link" href="#traffic">Update topic colours →</a>
         </div>
+      </div>
 
-        <!-- Revision plan (auto-generated) -->
-        <div class="card mt2" id="homeRevCard">
-          <h3>Today's Revision Plan</h3>
-          <div id="homeRevList"></div>
+      <!-- Todo preview -->
+      <div class="card mt2" id="homeTodoPreviewCard">
+        <h3>Tasks</h3>
+        <div id="homeTodoPreview"></div>
+      </div>
+
+      <!-- Subject stats grid -->
+      <div class="stats-grid mt2" id="homeStatsGrid"></div>
+
+      <!-- Study activity + quick diary log -->
+      <div class="card mt2" id="homeActivityCard">
+        <h3>Study Activity</h3>
+        <div class="home-diary-quick-log">
+          <input type="number" id="homeLogHours" min="0" max="16" step="0.25" placeholder="hrs">
+          <div class="quality-btns" id="homeQualityBtns">
+            <button class="home-quality-btn" data-q="1">1</button>
+            <button class="home-quality-btn" data-q="2">2</button>
+            <button class="home-quality-btn" data-q="3">3</button>
+            <button class="home-quality-btn" data-q="4">4</button>
+            <button class="home-quality-btn" data-q="5">5</button>
+          </div>
+          <button class="btn btn-sm" id="btnHomeLogDiary">Log</button>
         </div>
+        <div class="home-activity-grid-wrap" id="homeActivityGrid"></div>
+      </div>
 
-        <!-- Study activity heatmap -->
-        <div class="card mt2" id="homeActivityCard">
-          <h3>Study Activity</h3>
-          <div class="home-activity-grid-wrap" id="homeActivityGrid"></div>
+      <!-- Today's Prompt (collapsed) -->
+      <div class="card mt2">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="margin-bottom:0;">Today's Prompt</h3>
+          <button class="btn btn-sm" id="btnTogglePrompt">Show</button>
         </div>
-
-        <div class="card mt2">
-          <h3>Today's Prompt</h3>
-          <p class="text-sm text-secondary mb2">Generates a focused prompt based on today's revision plan — paste into Claude.</p>
+        <div id="promptBody" style="display:none;">
+          <p class="text-sm text-secondary mb2" style="margin-top:12px;">Generates a focused prompt based on today's revision plan — paste into Claude.</p>
           <div class="form-group mb2">
             <label>Anything specific to include today?</label>
             <textarea id="itineraryNotes" rows="2" placeholder="e.g. struggling with complex numbers, only 2 hours available…"></textarea>
           </div>
-          <button class="btn mb2" id="btnGenItinerary">Today's Prompt</button>
+          <button class="btn mb2" id="btnGenItinerary">Generate Prompt</button>
           <textarea class="itinerary-area" id="itineraryOutput" readonly placeholder="Click the button above to generate your prompt..."></textarea>
           <button class="btn btn-sm mt1" id="btnCopyItinerary" style="display:none;">Copy to clipboard</button>
         </div>
-
       </div>
+
     </div>
   </div>
 
@@ -1560,6 +1610,9 @@ textarea:focus, input:focus, select:focus {
         <input type="text" id="tlSearch" placeholder="Search topics…" class="tl-search-input">
       </div>
       <div id="tlTopics"></div>
+      <div class="card-footer-link" style="margin-top:16px;">
+        <a class="contextual-link" href="#home">Check today's plan →</a>
+      </div>
     </div>
     <div class="tl-saved" id="tlSaved"></div>
   </div><!-- /container -->
@@ -1691,6 +1744,9 @@ textarea:focus, input:focus, select:focus {
       <h3>Recent entries</h3>
       <div class="diary-entry-list" id="diaryEntryList"></div>
     </div>
+    <div class="card-footer-link mt2">
+      <a class="contextual-link" href="#home">← Back to home</a>
+    </div>
   </div><!-- /container -->
   </div><!-- /page-diary -->
 
@@ -1721,6 +1777,9 @@ textarea:focus, input:focus, select:focus {
         <button class="btn btn-sm" id="dayNavNext">&#9654;</button>
       </div>
       <div id="revScheduleView"></div>
+      <div class="card-footer-link mt2">
+        <a class="contextual-link" href="#traffic">Update topic colours →</a>
+      </div>
 
     </div>
   </div><!-- /page-todos -->
@@ -3284,7 +3343,7 @@ function renderHome() {
     const avgPct = papers.length ? Math.round(papers.reduce((s,p)=>s+p.pct,0)/papers.length) : null;
     const isToday = todaySubjects.includes(subj);
 
-    gridHtml += `<div class="stat-card" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
+    gridHtml += `<div class="stat-card" onclick="tlActiveSubject=${JSON.stringify(subj)};window.location.hash='#traffic';" style="${isToday ? "border-color:var(--border-emphasis);border-top:2px solid var(--text-primary);" : ""}">
       <div class="stat-card-label">${isToday ? "Today" : "&nbsp;"}</div>
       <div class="stat-card-name">${escHtml(shortNames[subj] || subj)}</div>
       <div class="stat-mini-bar">
@@ -3535,6 +3594,35 @@ document.getElementById("btnLogDiary").addEventListener("click", () => {
   document.querySelectorAll(".quality-btn").forEach(b => b.classList.remove("active"));
 
   renderDiary();
+});
+
+// Home quick diary log
+let homeLogQuality = 0;
+document.getElementById("homeQualityBtns").addEventListener("click", (e) => {
+  const btn = e.target.closest(".home-quality-btn");
+  if (!btn) return;
+  homeLogQuality = parseInt(btn.dataset.q);
+  document.querySelectorAll(".home-quality-btn").forEach(b =>
+    b.classList.toggle("active", parseInt(b.dataset.q) === homeLogQuality));
+});
+document.getElementById("btnHomeLogDiary").addEventListener("click", () => {
+  const hours = parseFloat(document.getElementById("homeLogHours").value) || 0;
+  if (hours <= 0 || !homeLogQuality) return;
+  state.diary.push({ date: getTodayStr(), hours, quality: homeLogQuality, notes: "", ts: Date.now() });
+  saveState();
+  homeLogQuality = 0;
+  document.querySelectorAll(".home-quality-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("homeLogHours").value = "";
+  renderHomeActivityGrid();
+  renderHome();
+});
+
+// Today's Prompt toggle
+document.getElementById("btnTogglePrompt").addEventListener("click", function() {
+  const body = document.getElementById("promptBody");
+  const hidden = body.style.display === "none";
+  body.style.display = hidden ? "block" : "none";
+  this.textContent = hidden ? "Hide" : "Show";
 });
 
 document.getElementById("btnCopyFeedback").addEventListener("click", () => {
