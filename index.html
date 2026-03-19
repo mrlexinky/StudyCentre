@@ -1435,9 +1435,9 @@ textarea:focus, input:focus, select:focus {
 
 /* ═══ HOME SEAMLESS LAYOUT ═══ */
 
-/* Container for home: no extra top padding, normal sides */
+/* Container for home */
 .home-container {
-  padding-top: calc(var(--spacing) * 2.5);
+  padding-top: calc(var(--spacing) * 2);
   padding-bottom: calc(var(--spacing) * 4);
 }
 
@@ -1447,32 +1447,33 @@ textarea:focus, input:focus, select:focus {
   border: none !important;
   border-top: none !important;
   box-shadow: none;
-  padding: calc(var(--spacing) * 1.5) 0;
+  padding: calc(var(--spacing) * 1.25) 0;
 }
 #page-home .stat-card:hover {
   box-shadow: none;
   transform: none;
+  opacity: 0.72;
 }
-/* TODAY label becomes the indicator instead of a border */
+/* TODAY label as indicator */
 #page-home .stat-card-label {
   font-weight: 500;
   color: var(--text-primary);
 }
 
-/* Home sections: no card box, just vertical rhythm */
+/* Home sections: tight vertical rhythm */
 .home-section {
-  padding: calc(var(--spacing) * 2.5) 0;
+  padding: calc(var(--spacing) * 1.75) 0;
 }
 
-/* Section label — replaces h3 inside home sections */
+/* Section label — strong contrast */
 .home-section-label {
   display: block;
   font-size: 11px;
-  font-weight: 400;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-tertiary);
-  margin-bottom: calc(var(--spacing) * 1.5);
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  margin-bottom: calc(var(--spacing) * 1.25);
 }
 
 /* Section header row with label + contextual link */
@@ -1480,10 +1481,48 @@ textarea:focus, input:focus, select:focus {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: calc(var(--spacing) * 1.5);
+  margin-bottom: calc(var(--spacing) * 1.25);
 }
-.home-section-header .home-section-label {
-  margin-bottom: 0;
+.home-section-header .home-section-label { margin-bottom: 0; }
+
+/* Strip the subject box border on home rev list */
+#homeRevList .rev-subject-box {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  border-radius: 0;
+  margin-bottom: 4px;
+}
+#homeRevList .rev-subject-box-name {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+#homeRevList .rev-section-badge {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.03em;
+}
+
+/* Hero heatmap + meta side-by-side */
+.hero-meta {
+  display: flex;
+  gap: calc(var(--spacing) * 4);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.hero-meta-graphic {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.hero-meta-blocks {
+  display: flex;
+  gap: calc(var(--spacing) * 7);
+  flex-wrap: wrap;
+  align-items: flex-start;
+  flex: 1;
 }
 </style>
 </head>
@@ -1556,20 +1595,25 @@ textarea:focus, input:focus, select:focus {
       <div class="hero-date" id="homeDate"></div>
       <div class="hero-rule"></div>
       <div class="hero-meta">
-        <div class="hero-meta-block">
-          <div class="hero-meta-label">Next exam</div>
-          <div class="hero-meta-value" id="homeCountdownName">—</div>
-          <div class="hero-meta-sub" id="homeCountdownDays"></div>
+        <div class="hero-meta-graphic">
+          <div class="home-activity-grid-wrap" id="homeActivityGrid"></div>
         </div>
-        <div class="hero-meta-block">
-          <div class="hero-meta-label">Streak</div>
-          <div class="hero-meta-value" id="homeStreak">—</div>
-          <div class="hero-meta-sub" id="homeStreakSub"></div>
-        </div>
-        <div class="hero-meta-block">
-          <div class="hero-meta-label">This week</div>
-          <div class="hero-meta-value" id="homeWeekHours">—</div>
-          <div class="hero-meta-sub" id="homeWeekHoursSub"></div>
+        <div class="hero-meta-blocks">
+          <div class="hero-meta-block">
+            <div class="hero-meta-label">Next exam</div>
+            <div class="hero-meta-value" id="homeCountdownName">—</div>
+            <div class="hero-meta-sub" id="homeCountdownDays"></div>
+          </div>
+          <div class="hero-meta-block">
+            <div class="hero-meta-label">Streak</div>
+            <div class="hero-meta-value" id="homeStreak">—</div>
+            <div class="hero-meta-sub" id="homeStreakSub"></div>
+          </div>
+          <div class="hero-meta-block">
+            <div class="hero-meta-label">This week</div>
+            <div class="hero-meta-value" id="homeWeekHours">—</div>
+            <div class="hero-meta-sub" id="homeWeekHoursSub"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1582,18 +1626,7 @@ textarea:focus, input:focus, select:focus {
 
       <div class="section-divider"></div>
 
-      <!-- Revision plan -->
-      <div class="home-section" id="homeRevCard">
-        <div class="home-section-header">
-          <span class="home-section-label">Today's Revision Plan</span>
-          <a class="contextual-link" href="#traffic">Update colours →</a>
-        </div>
-        <div id="homeRevList"></div>
-      </div>
-
-      <div class="section-divider"></div>
-
-      <!-- Todo preview -->
+      <!-- Todo preview — first -->
       <div class="home-section" id="homeTodoPreviewCard">
         <div class="home-section-label">Tasks</div>
         <div id="homeTodoPreview"></div>
@@ -1601,21 +1634,13 @@ textarea:focus, input:focus, select:focus {
 
       <div class="section-divider"></div>
 
-      <!-- Study activity + quick log -->
-      <div class="home-section" id="homeActivityCard">
-        <div class="home-section-label">Study Activity</div>
-        <div class="home-diary-quick-log">
-          <input type="number" id="homeLogHours" min="0" max="16" step="0.25" placeholder="hrs">
-          <div class="quality-btns" id="homeQualityBtns">
-            <button class="home-quality-btn" data-q="1">1</button>
-            <button class="home-quality-btn" data-q="2">2</button>
-            <button class="home-quality-btn" data-q="3">3</button>
-            <button class="home-quality-btn" data-q="4">4</button>
-            <button class="home-quality-btn" data-q="5">5</button>
-          </div>
-          <button class="btn btn-sm" id="btnHomeLogDiary">Log</button>
+      <!-- Revision plan -->
+      <div class="home-section" id="homeRevCard">
+        <div class="home-section-header">
+          <span class="home-section-label">Today's Revision Plan</span>
+          <a class="contextual-link" href="#traffic">Update colours →</a>
         </div>
-        <div class="home-activity-grid-wrap" id="homeActivityGrid"></div>
+        <div id="homeRevList"></div>
       </div>
 
       <div class="section-divider"></div>
@@ -3640,26 +3665,6 @@ document.getElementById("btnLogDiary").addEventListener("click", () => {
   renderDiary();
 });
 
-// Home quick diary log
-let homeLogQuality = 0;
-document.getElementById("homeQualityBtns").addEventListener("click", (e) => {
-  const btn = e.target.closest(".home-quality-btn");
-  if (!btn) return;
-  homeLogQuality = parseInt(btn.dataset.q);
-  document.querySelectorAll(".home-quality-btn").forEach(b =>
-    b.classList.toggle("active", parseInt(b.dataset.q) === homeLogQuality));
-});
-document.getElementById("btnHomeLogDiary").addEventListener("click", () => {
-  const hours = parseFloat(document.getElementById("homeLogHours").value) || 0;
-  if (hours <= 0 || !homeLogQuality) return;
-  state.diary.push({ date: getTodayStr(), hours, quality: homeLogQuality, notes: "", ts: Date.now() });
-  saveState();
-  homeLogQuality = 0;
-  document.querySelectorAll(".home-quality-btn").forEach(b => b.classList.remove("active"));
-  document.getElementById("homeLogHours").value = "";
-  renderHomeActivityGrid();
-  renderHome();
-});
 
 // Today's Prompt toggle
 document.getElementById("btnTogglePrompt").addEventListener("click", function() {
