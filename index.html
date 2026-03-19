@@ -36,6 +36,10 @@
   --accent: #48473F;
   --spacing: 8px;
   --card-shadow: 0 1px 2px rgba(72,71,63,0.06);
+  --shadow-lift: 0 6px 22px rgba(72,71,63,0.13);
+  --radius-card: 12px;
+  --radius-sm: 7px;
+  --radius-xs: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,6 +68,7 @@
 
     --accent: #B8B6AE;
     --card-shadow: 0 1px 4px rgba(0,0,0,0.28);
+    --shadow-lift: 0 6px 22px rgba(0,0,0,0.36);
   }
 }
 
@@ -81,7 +86,7 @@ html {
 }
 
 body {
-  padding-bottom: 80px;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   overscroll-behavior-y: none;
 }
 
@@ -91,14 +96,18 @@ body {
 .tab-bar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 60px;
-  background: var(--bg-page);
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
+  background: rgba(240, 239, 235, 0.86);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
   border-top: 1px solid var(--border);
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   z-index: 100;
-  /* keep it centred on wide screens */
   max-width: 100%;
+}
+@media (prefers-color-scheme: dark) {
+  .tab-bar { background: rgba(38, 37, 30, 0.88); }
 }
 
 .tab-item {
@@ -111,6 +120,8 @@ body {
   text-decoration: none;
   color: var(--text-tertiary);
   border-top: 2px solid transparent;
+  padding-top: 1px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   transition: color 0.15s, border-color 0.15s;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -121,6 +132,7 @@ body {
   color: var(--text-primary);
   border-top-color: var(--text-primary);
 }
+.tab-item.active .tab-label { font-weight: 500; letter-spacing: 0.01em; }
 
 .tab-item:hover { color: var(--text-secondary); }
 
@@ -155,43 +167,43 @@ body {
 }
 
 .page { display: none; }
-.page.active { display: block; }
+.page.active {
+  display: block;
+  animation: pageIn 0.22s ease both;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
 
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   padding: calc(var(--spacing) * 3);
-  margin-bottom: calc(var(--spacing) * 2);
+  margin-bottom: calc(var(--spacing) * 2.5);
   box-shadow: var(--card-shadow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(72,71,63,0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+  box-shadow: var(--shadow-lift);
 }
 
 .stat-card {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(72,71,63,0.12);
-}
-@media (prefers-color-scheme: dark) {
-  .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+  box-shadow: var(--shadow-lift);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    TYPOGRAPHY
    ═══════════════════════════════════════════════════════════════ */
 h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 28px; line-height: 1.2; margin-bottom: calc(var(--spacing) * 2); }
-h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 24px; letter-spacing: -0.01em; margin-bottom: calc(var(--spacing) * 2.5); padding-bottom: calc(var(--spacing) * 1.5); border-bottom: 1px solid var(--border); }
+h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 300; font-size: 26px; letter-spacing: -0.015em; margin-bottom: calc(var(--spacing) * 3); padding-bottom: calc(var(--spacing) * 2); border-bottom: 1px solid var(--border); }
 h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 15px; margin-bottom: var(--spacing); }
 
 .label {
@@ -229,17 +241,20 @@ h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 4
   font-family: inherit;
   font-size: 13px;
   font-weight: 400;
-  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 2);
+  padding: calc(var(--spacing) * 1) calc(var(--spacing) * 2.5);
   border: 1px solid var(--border-emphasis);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-card);
   color: var(--text-primary);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .btn:hover { background: var(--border); }
-.btn-sm { font-size: 11px; padding: 2px 10px; }
+.btn:active { transform: scale(0.97); }
+.btn-sm { font-size: 11px; padding: 3px 10px; border-radius: var(--radius-xs); }
 
 /* ═══════════════════════════════════════════════════════════════
    FORM ELEMENTS
@@ -248,16 +263,21 @@ textarea, input[type="text"], input[type="number"], select {
   font-family: inherit;
   font-size: 13px;
   font-weight: 300;
-  padding: calc(var(--spacing) * 1);
+  padding: calc(var(--spacing) * 1.1) calc(var(--spacing) * 1.5);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-page);
   color: var(--text-primary);
   width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 textarea { resize: vertical; min-height: 80px; }
-textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent); }
+textarea:focus, input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(72,71,63,0.10);
+}
 
 .form-row {
   display: flex;
@@ -305,10 +325,10 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 .hero-date {
-  font-size: 42px;
+  font-size: 48px;
   font-weight: 300;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
   margin-bottom: calc(var(--spacing) * 4);
 }
@@ -321,7 +341,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 
 .hero-meta {
   display: flex;
-  gap: calc(var(--spacing) * 6);
+  gap: calc(var(--spacing) * 7);
   flex-wrap: wrap;
   align-items: flex-start;
 }
@@ -338,7 +358,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 .hero-meta-value {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 300;
   color: var(--text-primary);
   line-height: 1.3;
@@ -379,13 +399,13 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 
 @media (max-width: 640px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .hero-date { font-size: 28px; }
+  .hero-date { font-size: 32px; letter-spacing: -0.015em; }
 }
 
 .stat-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-card);
   padding: calc(var(--spacing) * 2);
   box-shadow: var(--card-shadow);
 }
@@ -555,14 +575,14 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 .tl-section-header {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  padding: calc(var(--spacing) * 1.5) 0 calc(var(--spacing) * 1);
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  padding: calc(var(--spacing) * 1.5) 0 calc(var(--spacing) * 0.75);
   border-bottom: 1px solid var(--border);
-  margin-top: calc(var(--spacing) * 2);
+  margin-top: calc(var(--spacing) * 2.5);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -615,16 +635,18 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 .tl-dot {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: opacity 0.15s, border-color 0.15s;
+  transition: opacity 0.15s, border-color 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
 }
+.tl-dot:active { transform: scale(0.78); }
 
-.tl-dot.dim { opacity: 0.25; }
-.tl-dot.selected { border-color: var(--text-primary); }
+.tl-dot.dim { opacity: 0.22; }
+.tl-dot.selected { border-color: var(--text-primary); opacity: 1; }
 .tl-dot-r { background: var(--red-dot); }
 .tl-dot-a { background: var(--amber-dot); }
 .tl-dot-g { background: var(--green-dot); }
@@ -638,7 +660,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   padding: calc(var(--spacing) * 1.2) calc(var(--spacing) * 2);
   font-size: 13px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--bg-card);
 }
 
@@ -874,10 +896,15 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 .resource-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-bottom: calc(var(--spacing) * 1.5);
+  border-radius: var(--radius-card);
+  margin-bottom: calc(var(--spacing) * 2);
   overflow: hidden;
   box-shadow: var(--card-shadow);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.resource-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
 }
 
 .resource-card-header {
@@ -1026,9 +1053,9 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   font-family: inherit;
   font-size: 13px;
   font-weight: 400;
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-emphasis);
   background: var(--bg-card);
   color: var(--text-secondary);
@@ -1036,8 +1063,10 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
+.quality-btn:active { transform: scale(0.9); }
 
 .quality-btn.active {
   color: var(--bg-card);
@@ -1137,9 +1166,11 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.15s, transform 0.1s;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
+.todo-checkbox:active { transform: scale(0.82); }
 
 .todo-checkbox:hover {
   border-color: var(--green-dot);
@@ -1263,7 +1294,13 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 .day-nav-label { flex: 1; text-align: center; }
 
-.rev-subject-group { margin-bottom: 12px; }
+.section-divider {
+  height: 1px;
+  background: var(--border);
+  margin: calc(var(--spacing) * 3) 0 calc(var(--spacing) * 2.5);
+}
+
+.rev-subject-group { margin-bottom: 16px; }
 .rev-subject-label {
   font-size: 10px; font-weight: 400; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--text-tertiary);
@@ -1279,8 +1316,8 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 }
 
 .rev-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 0; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
   font-size: 13px; font-weight: 300;
 }
 .rev-item.done { opacity: 0.35; text-decoration: line-through; }
@@ -1328,7 +1365,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
 
 .rev-preview-day {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 4px; padding: 12px; margin-bottom: 8px;
+  border-radius: var(--radius-card); padding: 12px; margin-bottom: 8px;
 }
 </style>
 </head>
@@ -1379,10 +1416,8 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
   <!-- links -->
   <a class="tab-item" href="#resources" data-route="resources">
     <svg class="tab-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v2H3V5z"/>
-      <path d="M3 7v9a2 2 0 002 2h10a2 2 0 002-2V7"/>
-      <line x1="8" y1="11" x2="12" y2="11"/>
-      <line x1="8" y1="14" x2="12" y2="14"/>
+      <path d="M8.5 11.5a4 4 0 005.66 0l1.84-1.84a4 4 0 00-5.66-5.66l-1 1"/>
+      <path d="M11.5 8.5a4 4 0 00-5.66 0L3.99 10.34a4 4 0 005.66 5.66l1-1"/>
     </svg>
     <span class="tab-label">Links</span>
   </a>
@@ -1626,8 +1661,8 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       <h2>Tasks</h2>
 
       <!-- 1. Add a task form — just a text field, press Enter to add -->
-      <div class="card" style="padding: calc(var(--spacing)*1.5) calc(var(--spacing)*2.5);">
-        <input type="text" id="todoInput" placeholder="Add a task… press Enter" style="margin:0;border:none;outline:none;background:transparent;width:100%;font-size:14px;">
+      <div class="card" style="padding: calc(var(--spacing)*1.75) calc(var(--spacing)*2.5); margin-bottom: calc(var(--spacing)*2);">
+        <input type="text" id="todoInput" placeholder="Add a task… press Enter" style="margin:0;border:none;outline:none;box-shadow:none;background:transparent;width:100%;font-size:14px;font-weight:300;">
       </div>
       <button class="btn" id="btnAddTodo" style="display:none;">Add</button>
 
@@ -1638,7 +1673,7 @@ textarea:focus, input:focus, select:focus { outline: none; border-color: var(--a
       </div>
 
       <!-- 3. Revision schedule with day navigation -->
-      <div class="section-divider" style="margin:20px 0 16px;border-top:1px solid var(--border);"></div>
+      <div class="section-divider"></div>
       <div class="day-nav" id="dayNav">
         <button class="btn btn-sm" id="dayNavPrev">&#9664;</button>
         <span id="dayNavLabel" class="day-nav-label"></span>
@@ -2451,6 +2486,11 @@ function getWeekStart() {
 let state = loadState();
 saveState(); // Persist migration immediately
 
+/* ── Haptic feedback (progressive enhancement — works on Android Chrome) ── */
+function haptic(ms) {
+  try { navigator.vibrate && navigator.vibrate(ms); } catch (_) {}
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ROUTING
    ═══════════════════════════════════════════════════════════════════ */
@@ -2843,6 +2883,7 @@ function renderHomeRevList() {
   // Wire 3-dot TL selectors: clicking completes + sets TL colour
   el.querySelectorAll(".rev-tl-dots .tl-dot[data-home-rev-id]").forEach(dot => {
     dot.addEventListener("click", () => {
+      haptic(10);
       const id = dot.dataset.homeRevId;
       const ds = dot.dataset.homeRevDate;
       const subj = dot.dataset.subj;
@@ -2957,6 +2998,7 @@ function renderRevScheduleView(dateStr) {
     // Wire 3-dot TL selectors on tasks page
     el.querySelectorAll(".rev-tl-dots .tl-dot[data-task-rev-id]").forEach(dot => {
       dot.addEventListener("click", () => {
+        haptic(10);
         const id = dot.dataset.taskRevId;
         const ds = dot.dataset.taskRevDate;
         const subj = dot.dataset.subj;
@@ -3545,6 +3587,7 @@ function renderTLContent() {
 
   container.querySelectorAll(".tl-dot").forEach(dot => {
     dot.addEventListener("click", () => {
+      haptic(7);
       const topic = dot.dataset.topic;
       const val = dot.dataset.val;
       setTL(subj, topic, val);
@@ -3838,6 +3881,7 @@ function renderTodos() {
   // Checkbox handlers
   el.querySelectorAll(".todo-checkbox").forEach(cb => {
     cb.addEventListener("click", () => {
+      haptic(10);
       const idx = parseInt(cb.dataset.idx);
       state.todos[idx].completed = !state.todos[idx].completed;
 
@@ -3949,6 +3993,7 @@ function renderHomeTodoPreview() {
   // Wire up tick handlers
   el.querySelectorAll(".todo-checkbox[data-home-todo]").forEach(cb => {
     cb.addEventListener("click", () => {
+      haptic(10);
       const idx = parseInt(cb.dataset.homeTodo);
       if (isNaN(idx) || !state.todos[idx]) return;
       state.todos[idx].completed = true;
